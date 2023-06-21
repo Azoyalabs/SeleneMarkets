@@ -1,5 +1,6 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Decimal, Uint128};
+use serde::{Deserialize, Serialize};
 
 use crate::ContractError;
 
@@ -99,6 +100,12 @@ pub struct UserOrder {
     pub price: Decimal,
 }
 */
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct InternalUserOrder {
+    pub market_id: u64,
+    pub price: Decimal,
+}
 
 #[cw_serde]
 pub struct UserOrder {

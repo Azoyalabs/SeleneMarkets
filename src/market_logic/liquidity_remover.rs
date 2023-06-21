@@ -35,9 +35,9 @@ pub fn remove_order(
     })?;
     */
 
-    let mut orders = LEVEL_ORDERS.load(deps.storage, id)?;
     // remove order that matches data. We do not allow multiple orders by the same user at the same level
-    let orders: Vec<LevelOrder> = orders
+    let orders: Vec<LevelOrder> = LEVEL_ORDERS
+        .load(deps.storage, id)?
         .into_iter()
         .filter(|order| order.amount != order_quantity && order.user != info.sender)
         .collect();
@@ -83,7 +83,35 @@ pub fn remove_order(
                 }
             }
             Some(val_id_previous) => {
-                panic!();
+                // there is a previous, so not top of book
+
+                // need to update next in chain if it exists
+                match level_data.id_next {
+                    None => (),
+                    Some(val_id_next) => {
+                        LEVELS_DATA.update(
+                            deps.storage,
+                            val_id_next,
+                            |elem| -> Result<_, ContractError> {
+                                let mut elem = elem.unwrap();
+                                elem.id_previous = level_data.id_previous;
+
+                                return Ok(elem);
+                            },
+                        )?;
+                    }
+                }
+
+                LEVELS_DATA.update(
+                    deps.storage,
+                    val_id_previous,
+                    |elem| -> Result<_, ContractError> {
+                        let mut elem = elem.unwrap();
+                        elem.id_next = level_data.id_next;
+
+                        return Ok(elem);
+                    },
+                )?;
             }
         }
     } else {
@@ -92,4 +120,124 @@ pub fn remove_order(
     }
 
     return Ok(Response::new());
+}
+
+#[cfg(test)]
+mod tests {
+    use cosmwasm_std::{testing::mock_dependencies, Addr, Decimal, MessageInfo, Uint128};
+
+    use crate::{
+        contract_admin_execute::add_market,
+        market_logic::liquidity_provider::process_limit_maker,
+        state::MARKET_INFO,
+        structs::{CurrencyInfo, OrderSide},
+    };
+
+    use super::remove_order;
+
+    mod only_bids {
+        use super::*;
+
+        #[test]
+        fn liq_remover() {
+            let mut deps = mock_dependencies();
+
+            add_market(
+                deps.as_mut(),
+                CurrencyInfo::Native {
+                    denom: "azo".into(),
+                },
+                CurrencyInfo::Native {
+                    denom: "izo".into(),
+                },
+            )
+            .unwrap();
+
+            let info = MessageInfo {
+                sender: Addr::unchecked("user"),
+                funds: vec![],
+            };
+
+            process_limit_maker(
+                deps.as_mut(),
+                info.clone(),
+                0,
+                Decimal::one(),
+                Uint128::new(100),
+                OrderSide::Buy,
+            )
+            .unwrap();
+
+            // check market status
+            let market_info = MARKET_INFO.load(deps.as_ref().storage, 0).unwrap();
+            assert!(market_info.top_level_bid.is_some());
+
+            remove_order(
+                deps.as_mut(),
+                info,
+                0,
+                Decimal::one(),
+                Uint128::new(100),
+                OrderSide::Buy,
+            )
+            .unwrap();
+
+            // check market status, there shouldn't be anything left
+            let market_info = MARKET_INFO.load(deps.as_ref().storage, 0).unwrap();
+            assert!(market_info.top_level_bid.is_none());
+        }
+    }
+
+    mod only_asks {
+        use super::*;
+
+        #[test]
+        fn liq_remover() {
+            let mut deps = mock_dependencies();
+
+            add_market(
+                deps.as_mut(),
+                CurrencyInfo::Native {
+                    denom: "azo".into(),
+                },
+                CurrencyInfo::Native {
+                    denom: "izo".into(),
+                },
+            )
+            .unwrap();
+
+            let info = MessageInfo {
+                sender: Addr::unchecked("user"),
+                funds: vec![],
+            };
+
+            process_limit_maker(
+                deps.as_mut(),
+                info.clone(),
+                0,
+                Decimal::one(),
+                Uint128::new(100),
+                OrderSide::Sell,
+            )
+            .unwrap();
+
+            // check market status
+            let market_info = MARKET_INFO.load(deps.as_ref().storage, 0).unwrap();
+            assert!(market_info.top_level_ask.is_some());
+
+            remove_order(
+                deps.as_mut(),
+                info,
+                0,
+                Decimal::one(),
+                Uint128::new(100),
+                OrderSide::Sell,
+            )
+            .unwrap();
+
+            // check market status, there shouldn't be anything left
+            let market_info = MARKET_INFO.load(deps.as_ref().storage, 0).unwrap();
+            assert!(market_info.top_level_ask.is_none());
+        }
+    }
 }
