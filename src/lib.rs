@@ -11,6 +11,7 @@ pub mod state;
 pub mod structs;
 
 pub mod market_logic;
+pub mod state_utils;
 pub mod utils;
 
 pub mod events;
