@@ -1,5 +1,5 @@
 [package]
-name = "cosmwasm_contract_template"
+name = "selene_markets"
 version = "0.1.0"
 authors = ["AzoyaLabs <William@AzoyaLabs.com>"]
 edition = "2018"

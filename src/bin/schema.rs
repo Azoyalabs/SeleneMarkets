@@ -1,6 +1,6 @@
 use cosmwasm_schema::write_api;
 
-use cosmwasm_contract_template::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use selene_markets::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 
 fn main() {
     write_api! {

@@ -2,7 +2,7 @@ mod common;
 
 #[cfg(test)]
 mod tests {
-    use cosmwasm_contract_template::msg::InstantiateMsg;
+    use selene_markets::msg::InstantiateMsg;
     use cosmwasm_std::Addr;
     use cw_multi_test::{App, Executor};
 

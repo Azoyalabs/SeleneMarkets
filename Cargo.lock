@@ -156,24 +156,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cosmwasm_contract_template"
-version = "0.1.0"
-dependencies = [
- "cosmwasm-schema",
- "cosmwasm-std",
- "cosmwasm-storage",
- "cw-multi-test",
- "cw-storage-plus 0.15.1",
- "cw2 0.15.1",
- "cw20",
- "cw20-base",
- "erased-serde",
- "schemars",
- "serde",
- "thiserror",
-]
-
-[[package]]
 name = "cpufeatures"
 version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -696,6 +678,24 @@ dependencies = [
  "pkcs8",
  "subtle",
  "zeroize",
+]
+
+[[package]]
+name = "selene_markets"
+version = "0.1.0"
+dependencies = [
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cosmwasm-storage",
+ "cw-multi-test",
+ "cw-storage-plus 0.15.1",
+ "cw2 0.15.1",
+ "cw20",
+ "cw20-base",
+ "erased-serde",
+ "schemars",
+ "serde",
+ "thiserror",
 ]
 
 [[package]]
