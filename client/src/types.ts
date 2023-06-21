@@ -8,6 +8,17 @@ export interface FullBalance {
   address: string;
 }
 
+/*
+LimitOrder {
+        market_id: u64,
+        price: Decimal,
+        order_side: OrderSide,
+    },
+    MarketOrder {
+        market_id: u64,
+        order_side: OrderSide,
+    },*/
+
 /**
  * Use send so we trigger the receiver interface
  */
