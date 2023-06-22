@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GetMarketsResponse",
+  "type": "object",
+  "required": [
+    "markets"
+  ],
+  "properties": {
+    "markets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/SingleMarketInfo"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "CurrencyInfo": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "native"
+          ],
+          "properties": {
+            "native": {
+              "type": "object",
+              "required": [
+                "denom"
+              ],
+              "properties": {
+                "denom": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "cw20"
+          ],
+          "properties": {
+            "cw20": {
+              "type": "object",
+              "required": [
+                "address"
+              ],
+              "properties": {
+                "address": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "SingleMarketInfo": {
+      "type": "object",
+      "required": [
+        "base_currency",
+        "quote_currency"
+      ],
+      "properties": {
+        "base_currency": {
+          "$ref": "#/definitions/CurrencyInfo"
+        },
+        "quote_currency": {
+          "$ref": "#/definitions/CurrencyInfo"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

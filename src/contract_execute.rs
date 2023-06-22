@@ -1,11 +1,10 @@
-use std::cmp::Ordering;
-
 use cosmwasm_std::{Decimal, DepsMut, Env, MessageInfo, Response, Uint128};
 
 use crate::{
+    market_logic::{liquidity_provider, liquidity_remover},
     msg::ExecuteMsg,
-    state::{LEVELS_DATA, LEVEL_ORDERS, MARKET_INFO},
-    structs::{CurrencyStatus, LevelData, LevelOrder, OrderSide},
+    state::{LEVELS_DATA, LEVEL_ORDERS, MARKET_INFO, USER_ORDERS},
+    structs::{CurrencyStatus, LevelData, LevelOrder, OrderSide, UserOrderRecord},
     utils::{check_only_one_fund, create_id_level, create_id_level_no_status},
     ContractError,
 };
@@ -17,14 +16,18 @@ pub fn route_execute(
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
-        ExecuteMsg::Receive(receive_msg) => {
+        ExecuteMsg::Receive(_receive_msg) => {
             panic!("not implemented");
         }
         ExecuteMsg::LimitOrder {
             market_id,
             price,
-            order_side,
-        } => execute_limit_order(deps, info, market_id, price),
+            //order_side,
+        } => execute_limit_order2(deps, info, market_id, price),
+        ExecuteMsg::RemoveLimitOrder { market_id, price } => {
+            execute_remove_limit_order(deps, info, market_id, price)
+        }
+
         ExecuteMsg::MarketOrder { market_id } => execute_market_order(deps, info, market_id),
 
         // shouldn't happen here
@@ -32,8 +35,43 @@ pub fn route_execute(
     }
 }
 
-/// Add a limit order to the order book, or consume liquidity
-fn execute_limit_order(
+fn execute_remove_limit_order(
+    deps: DepsMut,
+    info: MessageInfo,
+    market_id: u64,
+    order_price: Decimal,
+) -> Result<Response, ContractError> {
+    // check if order exists
+    let mut user_orders = USER_ORDERS.load(deps.storage, info.sender.clone())?;
+    let target_order_id = user_orders
+        .iter()
+        .position(|order| order.market_id == market_id && order.price == order_price);
+
+    match target_order_id {
+        None => return Err(ContractError::OrderDoesNotExist {}),
+        Some(order_id) => {
+            let order_data = user_orders[order_id].clone();
+
+            // remove order from user list of orders
+            user_orders.swap_remove(order_id);
+            USER_ORDERS.save(deps.storage, info.sender.clone(), &user_orders)?;
+
+            // and remove from book
+            liquidity_remover::remove_order(
+                deps.storage,
+                info,
+                market_id,
+                order_price,
+                order_data.quantity,
+                order_data.order_side.to_owned(),
+            )?;
+        }
+    }
+
+    return Ok(Response::new());
+}
+
+fn execute_limit_order2(
     deps: DepsMut,
     info: MessageInfo,
     market_id: u64,
@@ -41,9 +79,10 @@ fn execute_limit_order(
 ) -> Result<Response, ContractError> {
     // validate funds
     let order_value = check_only_one_fund(&info)?;
+    let order_quantity = order_value.amount;
 
     // load market info
-    let mut market_info = match MARKET_INFO.load(deps.storage, market_id) {
+    let market_info = match MARKET_INFO.load(deps.storage, market_id) {
         Err(_) => return Err(ContractError::UnknownMarketId { id: market_id }),
         Ok(market_info) => market_info,
     };
@@ -58,50 +97,159 @@ fn execute_limit_order(
             // if we receive BaseCurrency, then it's a sell order
             // so check if it's taker or maker
             match market_info.top_level_bid {
+                // no bids registered, so it's a limit maker order
                 None => {
-                    // no bids registered, so this is a maker
+                    // no bids registered, so it's a limit maker order
+                    USER_ORDERS.update(
+                        deps.storage,
+                        info.sender.clone(),
+                        |orders| -> Result<_, ContractError> {
+                            let mut orders = orders.unwrap_or_default();
+                            orders.push(UserOrderRecord {
+                                order_side: OrderSide::Sell,
+                                price: order_price,
+                                market_id: market_id,
+                                quantity: order_quantity,
+                            });
+
+                            return Ok(orders);
+                        },
+                    )?;
+
+                    liquidity_provider::process_limit_maker(
+                        deps,
+                        info,
+                        market_id,
+                        order_price,
+                        order_quantity,
+                        OrderSide::Sell,
+                    )?;
+
+                    /*
                     match market_info.top_level_ask {
                         None => {
-                            // no previous level, so add one
-                            let level_data = LevelData {
-                                id_previous: None,
-                                id_next: None,
-                                price: order_price,
-                            };
+                            // no asks also, so maker
+                            liquidity_provider::process_limit_maker(deps, info, market_id, order_price, order_quantity, OrderSide::Sell)?;
+                        },
+                        Some(val_id_top_level_ask) => {
+                            // there are asks, need to compare prices
+                            let top_ask_level_data = LEVELS_DATA.load(deps.storage, val_id_top_level_ask)?;
 
-                            let id = create_id_level(&market_info, order_price, currency_status);
-                            LEVELS_DATA.save(deps.storage, id, &level_data)?;
-
-                            market_info.top_level_ask = Some(id);
-
-                            let level_order = LevelOrder {
-                                user: info.sender,
-                                amount: order_value.amount,
-                            };
-                            LEVEL_ORDERS.save(deps.storage, id, &vec![level_order])?;
-                            MARKET_INFO.save(deps.storage, market_id, &market_info)?;
                         }
-                        Some(level_data) => {}
                     }
+                    */
                 }
-                Some(level) => {
-                    let level_data = LEVELS_DATA.load(deps.storage, level)?;
-                    if level_data.price > order_price {
-                        // price is above bids, so it's a maker
+                // bids registered, compare to price
+                Some(val_id_top_level_bid) => {
+                    let top_bid_level_data =
+                        LEVELS_DATA.load(deps.storage, val_id_top_level_bid)?;
+                    if top_bid_level_data.price < order_price {
+                        // this is a limit maker
+                        USER_ORDERS.update(
+                            deps.storage,
+                            info.sender.clone(),
+                            |orders| -> Result<_, ContractError> {
+                                let mut orders = orders.unwrap_or_default();
+                                orders.push(UserOrderRecord {
+                                    order_side: OrderSide::Sell,
+                                    price: order_price,
+                                    market_id: market_id,
+                                    quantity: order_quantity,
+                                });
+
+                                return Ok(orders);
+                            },
+                        )?;
+
+                        liquidity_provider::process_limit_maker(
+                            deps,
+                            info,
+                            market_id,
+                            order_price,
+                            order_quantity,
+                            OrderSide::Sell,
+                        )?;
                     } else {
-                        // price is below top bids, so it's taker
+                        // limit taker
+                        panic!("Not implemented");
                     }
                 }
             }
         }
+        // if we receive BaseCurrency, then it's a sell order
+        // so check if it's taker or maker
         CurrencyStatus::QuoteCurrency => {
-            // if we receive the quote currency, it's a buy
+            match market_info.top_level_ask {
+                None => {
+                    // no bids registered, so it's a limit maker order
+                    USER_ORDERS.update(
+                        deps.storage,
+                        info.sender.clone(),
+                        |orders| -> Result<_, ContractError> {
+                            let mut orders = orders.unwrap_or_default();
+                            orders.push(UserOrderRecord {
+                                order_side: OrderSide::Buy,
+                                price: order_price,
+                                market_id: market_id,
+                                quantity: order_quantity,
+                            });
+
+                            return Ok(orders);
+                        },
+                    )?;
+
+                    liquidity_provider::process_limit_maker(
+                        deps,
+                        info,
+                        market_id,
+                        order_price,
+                        order_quantity,
+                        OrderSide::Buy,
+                    )?;
+                }
+                // bids registered, compare to price
+                Some(val_id_top_level_ask) => {
+                    let top_ask_level_data =
+                        LEVELS_DATA.load(deps.storage, val_id_top_level_ask)?;
+                    if top_ask_level_data.price > order_price {
+                        // this is a limit maker
+                        USER_ORDERS.update(
+                            deps.storage,
+                            info.sender.clone(),
+                            |orders| -> Result<_, ContractError> {
+                                let mut orders = orders.unwrap_or_default();
+                                orders.push(UserOrderRecord {
+                                    order_side: OrderSide::Buy,
+                                    price: order_price,
+                                    market_id: market_id,
+                                    quantity: order_quantity,
+                                });
+
+                                return Ok(orders);
+                            },
+                        )?;
+
+                        liquidity_provider::process_limit_maker(
+                            deps,
+                            info,
+                            market_id,
+                            order_price,
+                            order_quantity,
+                            OrderSide::Buy,
+                        )?;
+                    } else {
+                        // limit taker
+                        panic!("Not implemented");
+                    }
+                }
+            }
         }
     }
 
     return Ok(Response::new());
 }
 
+/*
 fn process_limit_maker(
     deps: DepsMut,
     info: MessageInfo,
@@ -230,6 +378,7 @@ fn process_limit_maker(
 
     return Ok(Response::new());
 }
+*/
 
 fn process_limit_taker(deps: DepsMut, info: MessageInfo, market_id: u64, order_price: Decimal) {}
 
@@ -240,9 +389,5 @@ fn execute_market_order(
     _info: MessageInfo,
     market_id: u64,
 ) -> Result<Response, ContractError> {
-    return Ok(Response::new());
-}
-
-fn sample_execute(_deps: DepsMut, _info: MessageInfo) -> Result<Response, ContractError> {
     return Ok(Response::new());
 }

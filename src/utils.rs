@@ -4,12 +4,18 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-use cosmwasm_std::{Coin, Decimal, MessageInfo};
+use cosmwasm_std::{Coin, Decimal, MessageInfo, Uint128};
 
 use crate::{
     structs::{CurrencyStatus, MarketInfo},
     ContractError,
 };
+
+/// Compute midprice for a market
+pub fn compute_midprice(bid_price: Decimal, ask_price: Decimal) -> Decimal {
+    let divisor = Decimal::from_atomics(Uint128::new(2), 0).unwrap();
+    return bid_price / divisor + ask_price / divisor;
+}
 
 /// check if there is only one fund in the message and return the coin struct
 pub fn check_only_one_fund(info: &MessageInfo) -> Result<Coin, ContractError> {

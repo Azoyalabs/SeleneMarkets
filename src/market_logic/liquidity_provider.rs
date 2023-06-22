@@ -32,15 +32,6 @@ pub fn process_limit_maker(
         OrderSide::Buy => market_info.top_level_bid,
         OrderSide::Sell => market_info.top_level_ask,
     };
-    /*
-    let mut id_next_level = match order_side {
-        OrderSide::Buy => market_info.top_level_bid,
-        OrderSide::Sell => market_info.top_level_ask,
-    };
-    */
-
-    // not necessary, should be with None in id_prev_level?
-    // let mut is_top_book = true;
 
     // now create infinite loop, we walk the linked list until we find the spot where to add
     loop {
@@ -69,7 +60,7 @@ pub fn process_limit_maker(
 
                         let level_data = LevelData {
                             id_next: None,
-                            id_previous: None,
+                            id_previous: id_prev_level,
                             price: order_price,
                         };
 
@@ -212,7 +203,7 @@ pub fn process_limit_maker(
                     id_prev_level = id_current_level;
                     id_current_level = LEVELS_DATA
                         .load(deps.storage, val_id_current_level)?
-                        .id_previous;
+                        .id_next;
                 }
             }
         }
@@ -234,7 +225,7 @@ mod tests {
     use super::process_limit_maker;
 
     mod only_bids {
-        use crate::state::LEVELS_DATA;
+        use crate::{state::LEVELS_DATA, utils::create_id_level_no_status};
 
         use super::*;
 
@@ -246,10 +237,10 @@ mod tests {
             add_market(
                 deps.as_mut(),
                 CurrencyInfo::Native {
-                    denom: "azo".into(),
+                    denom: "husd".into(),
                 },
                 CurrencyInfo::Native {
-                    denom: "izo".into(),
+                    denom: "heur".into(),
                 },
             )
             .unwrap();
@@ -278,10 +269,10 @@ mod tests {
             add_market(
                 deps.as_mut(),
                 CurrencyInfo::Native {
-                    denom: "azo".into(),
+                    denom: "husd".into(),
                 },
                 CurrencyInfo::Native {
-                    denom: "izo".into(),
+                    denom: "heur".into(),
                 },
             )
             .unwrap();
@@ -321,10 +312,10 @@ mod tests {
             add_market(
                 deps.as_mut(),
                 CurrencyInfo::Native {
-                    denom: "azo".into(),
+                    denom: "husd".into(),
                 },
                 CurrencyInfo::Native {
-                    denom: "izo".into(),
+                    denom: "heur".into(),
                 },
             )
             .unwrap();
@@ -376,10 +367,10 @@ mod tests {
             add_market(
                 deps.as_mut(),
                 CurrencyInfo::Native {
-                    denom: "azo".into(),
+                    denom: "husd".into(),
                 },
                 CurrencyInfo::Native {
-                    denom: "izo".into(),
+                    denom: "heur".into(),
                 },
             )
             .unwrap();
@@ -420,12 +411,95 @@ mod tests {
                 .unwrap();
 
             assert_eq!(top_price, level_info.price);
+        }
+
+        /// create 3 levels in the market, with the following price order: mid, high, low
+        #[test]
+        fn liq_provider_new_book_three_levels_mid_high_low() {
+            let mut deps = mock_dependencies();
+
+            add_market(
+                deps.as_mut(),
+                CurrencyInfo::Native {
+                    denom: "husd".into(),
+                },
+                CurrencyInfo::Native {
+                    denom: "heur".into(),
+                },
+            )
+            .unwrap();
+
+            let info = MessageInfo {
+                sender: Addr::unchecked("user"),
+                funds: vec![],
+            };
+
+            let top_price = Decimal::from_atomics(Uint128::new(1280), 3).unwrap();
+            let mid_price = Decimal::one();
+            let bottom_price = Decimal::from_atomics(Uint128::new(988), 3).unwrap();
+
+            process_limit_maker(
+                deps.as_mut(),
+                info.clone(),
+                0,
+                mid_price,
+                Uint128::new(100),
+                OrderSide::Buy,
+            )
+            .unwrap();
+
+            process_limit_maker(
+                deps.as_mut(),
+                info.clone(),
+                0,
+                top_price.clone(),
+                Uint128::new(100),
+                OrderSide::Buy,
+            )
+            .unwrap();
+
+            process_limit_maker(
+                deps.as_mut(),
+                info.clone(),
+                0,
+                bottom_price.clone(),
+                Uint128::new(100),
+                OrderSide::Buy,
+            )
+            .unwrap();
+
+            // we need to check what the top level is for bids
+            let market_info = MARKET_INFO.load(deps.as_ref().storage, 0).unwrap();
+
+            let id_top_level_bid = create_id_level_no_status(&market_info, top_price);
+            let id_mid_level_bid = create_id_level_no_status(&market_info, mid_price);
+            let id_bottom_level_bid = create_id_level_no_status(&market_info, bottom_price);
+
+            assert_eq!(market_info.top_level_bid.unwrap(), id_top_level_bid);
+
+            let top_level_info = LEVELS_DATA
+                .load(deps.as_ref().storage, id_top_level_bid)
+                .unwrap();
+            assert_eq!(top_level_info.id_next.unwrap(), id_mid_level_bid);
+            assert!(top_level_info.id_previous.is_none());
+
+            let mid_level_info = LEVELS_DATA
+                .load(deps.as_ref().storage, id_mid_level_bid)
+                .unwrap();
+            assert_eq!(mid_level_info.id_next.unwrap(), id_bottom_level_bid);
+            assert_eq!(mid_level_info.id_previous.unwrap(), id_top_level_bid);
+
+            let bottom_level_info = LEVELS_DATA
+                .load(deps.as_ref().storage, id_bottom_level_bid)
+                .unwrap();
+            assert_eq!(bottom_level_info.id_previous.unwrap(), id_mid_level_bid);
+            assert!(bottom_level_info.id_next.is_none());
         }
     }
 
     /// same as only_bids, except this time is sell orders
     mod only_asks {
-        use crate::state::LEVELS_DATA;
+        use crate::{state::LEVELS_DATA, utils::create_id_level_no_status};
 
         use super::*;
 
@@ -437,10 +511,10 @@ mod tests {
             add_market(
                 deps.as_mut(),
                 CurrencyInfo::Native {
-                    denom: "azo".into(),
+                    denom: "husd".into(),
                 },
                 CurrencyInfo::Native {
-                    denom: "izo".into(),
+                    denom: "heur".into(),
                 },
             )
             .unwrap();
@@ -469,10 +543,10 @@ mod tests {
             add_market(
                 deps.as_mut(),
                 CurrencyInfo::Native {
-                    denom: "azo".into(),
+                    denom: "husd".into(),
                 },
                 CurrencyInfo::Native {
-                    denom: "izo".into(),
+                    denom: "heur".into(),
                 },
             )
             .unwrap();
@@ -512,10 +586,10 @@ mod tests {
             add_market(
                 deps.as_mut(),
                 CurrencyInfo::Native {
-                    denom: "azo".into(),
+                    denom: "husd".into(),
                 },
                 CurrencyInfo::Native {
-                    denom: "izo".into(),
+                    denom: "heur".into(),
                 },
             )
             .unwrap();
@@ -567,10 +641,10 @@ mod tests {
             add_market(
                 deps.as_mut(),
                 CurrencyInfo::Native {
-                    denom: "azo".into(),
+                    denom: "husd".into(),
                 },
                 CurrencyInfo::Native {
-                    denom: "izo".into(),
+                    denom: "heur".into(),
                 },
             )
             .unwrap();
@@ -611,6 +685,89 @@ mod tests {
                 .unwrap();
 
             assert_eq!(top_price, level_info.price);
+        }
+
+        /// create 3 levels in the market, with the following price order: mid, high, low
+        #[test]
+        fn liq_provider_new_book_three_levels_mid_high_low() {
+            let mut deps = mock_dependencies();
+
+            add_market(
+                deps.as_mut(),
+                CurrencyInfo::Native {
+                    denom: "husd".into(),
+                },
+                CurrencyInfo::Native {
+                    denom: "heur".into(),
+                },
+            )
+            .unwrap();
+
+            let info = MessageInfo {
+                sender: Addr::unchecked("user"),
+                funds: vec![],
+            };
+
+            let bottom_price = Decimal::from_atomics(Uint128::new(1280), 3).unwrap();
+            let mid_price = Decimal::one();
+            let top_price = Decimal::from_atomics(Uint128::new(988), 3).unwrap();
+
+            process_limit_maker(
+                deps.as_mut(),
+                info.clone(),
+                0,
+                mid_price,
+                Uint128::new(100),
+                OrderSide::Sell,
+            )
+            .unwrap();
+
+            process_limit_maker(
+                deps.as_mut(),
+                info.clone(),
+                0,
+                top_price.clone(),
+                Uint128::new(100),
+                OrderSide::Sell,
+            )
+            .unwrap();
+
+            process_limit_maker(
+                deps.as_mut(),
+                info.clone(),
+                0,
+                bottom_price.clone(),
+                Uint128::new(100),
+                OrderSide::Sell,
+            )
+            .unwrap();
+
+            // we need to check what the top level is for bids
+            let market_info = MARKET_INFO.load(deps.as_ref().storage, 0).unwrap();
+
+            let id_top_level_ask = create_id_level_no_status(&market_info, top_price);
+            let id_mid_level_ask = create_id_level_no_status(&market_info, mid_price);
+            let id_bottom_level_ask = create_id_level_no_status(&market_info, bottom_price);
+
+            assert_eq!(market_info.top_level_ask.unwrap(), id_top_level_ask);
+
+            let top_level_info = LEVELS_DATA
+                .load(deps.as_ref().storage, id_top_level_ask)
+                .unwrap();
+            assert_eq!(top_level_info.id_next.unwrap(), id_mid_level_ask);
+            assert!(top_level_info.id_previous.is_none());
+
+            let mid_level_info = LEVELS_DATA
+                .load(deps.as_ref().storage, id_mid_level_ask)
+                .unwrap();
+            assert_eq!(mid_level_info.id_next.unwrap(), id_bottom_level_ask);
+            assert_eq!(mid_level_info.id_previous.unwrap(), id_top_level_ask);
+
+            let bottom_level_info = LEVELS_DATA
+                .load(deps.as_ref().storage, id_bottom_level_ask)
+                .unwrap();
+            assert_eq!(bottom_level_info.id_previous.unwrap(), id_mid_level_ask);
+            assert!(bottom_level_info.id_next.is_none());
         }
     }
 }

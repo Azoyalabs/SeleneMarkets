@@ -1,7 +1,7 @@
 use cosmwasm_std::Addr;
 use cw_storage_plus::{Item, Map};
 
-use crate::structs::{LevelData, LevelOrders, MarketInfo, UserOrder};
+use crate::structs::{LevelData, LevelOrders, MarketInfo, TempOrderRep, UserOrderRecord};
 
 pub const ADMIN: Item<Addr> = Item::new("admin");
 
@@ -20,4 +20,10 @@ pub const LEVELS_DATA: Map<u64, LevelData> = Map::new("levels_data");
 pub const LEVEL_ORDERS: Map<u64, LevelOrders> = Map::new("level_orders");
 
 // Tracking user orders
-//pub const USER_ORDERS: Map<u64, Vec<UserOrder>> = Map::new("user_orders");
+pub const USER_ORDERS: Map<Addr, Vec<UserOrderRecord>> = Map::new("user_orders");
+
+/// Tracking all orders
+pub const ORDERS_TRACKER: Map<u64, TempOrderRep> = Map::new("orders_tracker");
+
+/// Allocate id to new orders
+pub const ORDER_ID_TRACKER: Item<u64> = Item::new("order_id_tracker");

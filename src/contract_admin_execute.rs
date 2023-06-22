@@ -77,10 +77,10 @@ mod tests {
         add_market(
             deps.as_mut(),
             CurrencyInfo::Native {
-                denom: "azo".into(),
+                denom: "husd".into(),
             },
             CurrencyInfo::Native {
-                denom: "izo".into(),
+                denom: "heur".into(),
             },
         )
         .unwrap();

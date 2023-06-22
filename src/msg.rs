@@ -2,7 +2,7 @@ use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Addr, Decimal};
 use cw20::Cw20ReceiveMsg;
 
-use crate::structs::{CurrencyInfo, OrderSide, UserOrder};
+use crate::structs::{BookLevel, CurrencyInfo, OrderSide, SingleMarketInfo, UserOrderRecord};
 
 #[cw_serde]
 pub struct InstantiateMsg {}
@@ -25,11 +25,11 @@ pub enum SeleneCw20Msg {
     LimitOrder {
         market_id: u64,
         price: Decimal,
-        order_side: OrderSide,
+        //order_side: OrderSide,
     },
     MarketOrder {
         market_id: u64,
-        order_side: OrderSide,
+        //order_side: OrderSide,
     },
 }
 
@@ -40,11 +40,15 @@ pub enum ExecuteMsg {
     LimitOrder {
         market_id: u64,
         price: Decimal,
-        order_side: OrderSide,
+        //order_side: OrderSide,
     },
     /// market order for a native coin
     MarketOrder {
         market_id: u64,
+    },
+    RemoveLimitOrder {
+        market_id: u64,
+        price: Decimal,
     },
 
     Admin(AdminExecuteMsg),
@@ -59,21 +63,55 @@ pub enum QueryMsg {
     #[returns(GetAdminResponse)]
     GetAdmin {},
 
-    #[returns(GetUserBids)]
-    GetUserBids { target_market: Option<u64> },
+    #[returns(GetMarketsResponse)]
+    GetMarkets {},
 
-    #[returns(GetUserAsks)]
-    GetUserAsks { target_market: Option<u64> },
+    #[returns(GetUserBidsResponse)]
+    GetUserBids {
+        user_address: Addr,
+        target_market: Option<u64>,
+    },
+
+    #[returns(GetUserAsksResponse)]
+    GetUserAsks {
+        user_address: Addr,
+        target_market: Option<u64>,
+    },
+
+    #[returns(GetUserOrdersResponse)]
+    GetUserOrders {
+        user_address: Addr,
+        target_market: Option<u64>,
+    },
+
+    #[returns(GetMarketBookResponse)]
+    GetMarketBook { market_id: u64, nb_levels: u32 },
 }
 
 #[cw_serde]
-pub struct GetUserBids {
-    pub orders: Vec<UserOrder>,
+pub struct GetMarketBookResponse {
+    pub bids: Vec<BookLevel>,
+    pub asks: Vec<BookLevel>,
 }
 
 #[cw_serde]
-pub struct GetUserAsks {
-    pub orders: Vec<UserOrder>,
+pub struct GetMarketsResponse {
+    pub markets: Vec<SingleMarketInfo>,
+}
+
+#[cw_serde]
+pub struct GetUserOrdersResponse {
+    pub orders: Vec<UserOrderRecord>,
+}
+
+#[cw_serde]
+pub struct GetUserBidsResponse {
+    pub orders: Vec<UserOrderRecord>,
+}
+
+#[cw_serde]
+pub struct GetUserAsksResponse {
+    pub orders: Vec<UserOrderRecord>,
 }
 
 #[cw_serde]

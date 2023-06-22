@@ -20,4 +20,7 @@ pub enum ContractError {
 
     #[error("This is not a valid denomination for this market")]
     MismatchDenomAndMarket {},
+
+    #[error("Order to cancel does not exist")]
+    OrderDoesNotExist {},
 }
