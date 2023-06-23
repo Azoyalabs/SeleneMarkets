@@ -4,8 +4,12 @@ use crate::{
     market_logic::{liquidity_provider, liquidity_remover},
     msg::{ExecuteMsg, SeleneCw20Msg},
     state::{LEVELS_DATA, LEVEL_ORDERS, MARKET_INFO, USER_ORDERS},
-    structs::{CurrencyInfo, CurrencyStatus, LevelData, LevelOrder, OrderSide, UserOrderRecord},
-    utils::{check_only_one_fund, create_id_level, create_id_level_no_status},
+    structs::{
+        CurrencyInfo, CurrencyStatus, LevelData, LevelOrder, MarketInfo, OrderSide, UserOrderRecord,
+    },
+    utils::{
+        check_only_one_fund, create_funds_message, create_id_level, create_id_level_no_status,
+    },
     ContractError,
 };
 
@@ -53,13 +57,17 @@ fn execute_remove_limit_order(
     market_id: u64,
     order_price: Decimal,
 ) -> Result<Response, ContractError> {
+    let market_info = MARKET_INFO.load(deps.storage, market_id)?;
+    let currency_info =
+        market_info.get_currency_status_from_price(deps.as_ref().storage, order_price)?;
+
     // check if order exists
     let mut user_orders = USER_ORDERS.load(deps.storage, info.sender.clone())?;
     let target_order_id = user_orders
         .iter()
         .position(|order| order.market_id == market_id && order.price == order_price);
 
-    match target_order_id {
+    let transfer_msg = match target_order_id {
         None => return Err(ContractError::OrderDoesNotExist {}),
         Some(order_id) => {
             let order_data = user_orders[order_id].clone();
@@ -71,16 +79,20 @@ fn execute_remove_limit_order(
             // and remove from book
             liquidity_remover::remove_order(
                 deps.storage,
-                info,
+                info.clone(),
                 market_id,
                 order_price,
                 order_data.quantity,
                 order_data.order_side.to_owned(),
             )?;
-        }
-    }
 
-    return Ok(Response::new());
+            create_funds_message(order_data.quantity, currency_info, info.sender)
+        }
+    };
+
+    //let transfer_msg = create_funds_message(amount, currency_info, beneficiary)
+
+    return Ok(Response::new().add_message(transfer_msg));
 }
 
 fn execute_limit_order_cw20(
@@ -363,7 +375,7 @@ fn execute_limit_order2(
                         )?;
                     } else {
                         // limit taker
-                        panic!("Not implemented");
+                        panic!("limit taker orders Not implemented");
                     }
                 }
             }

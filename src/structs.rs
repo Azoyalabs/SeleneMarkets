@@ -1,8 +1,8 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, Decimal, Uint128, Uint256};
+use cosmwasm_std::{Addr, Decimal, Deps, Storage, Uint128, Uint256};
 use serde::{Deserialize, Serialize};
 
-use crate::ContractError;
+use crate::{state::LEVELS_DATA, ContractError};
 
 #[cw_serde]
 pub enum OrderSide {
@@ -60,6 +60,38 @@ impl MarketInfo {
         }
 
         return Err(ContractError::MismatchDenomAndMarket {});
+    }
+
+    pub fn get_currency_status_from_price(
+        &self,
+        storage: &dyn Storage,
+        price: Decimal,
+    ) -> Result<CurrencyInfo, ContractError> {
+        let is_quote_currency = match self.top_level_bid {
+            None => false,
+            Some(val_id_top_level_bid) => {
+                let level_data = LEVELS_DATA.load(storage, val_id_top_level_bid)?;
+
+                level_data.price >= price
+            }
+        };
+
+        let is_base_currency = match self.top_level_ask {
+            None => false,
+            Some(val_id_top_level_ask) => {
+                let level_data = LEVELS_DATA.load(storage, val_id_top_level_ask)?;
+
+                level_data.price <= price
+            }
+        };
+
+        if is_base_currency {
+            return Ok(self.base_currency.clone());
+        } else if is_quote_currency {
+            return Ok(self.quote_currency.clone());
+        } else {
+            return Err(ContractError::MismatchDenomAndMarket {});
+        }
     }
 
     pub fn is_valid_currency(&self, target_denom: &str) -> bool {

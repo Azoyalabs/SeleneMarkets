@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use cosmwasm_std::{Addr, Decimal, DepsMut, MessageInfo, Response, Uint128};
+use cosmwasm_std::{Addr, Decimal, DepsMut, Response, Uint128};
 
 use crate::{
     state::{LEVELS_DATA, LEVEL_ORDERS, MARKET_INFO},
