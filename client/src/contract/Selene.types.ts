@@ -94,6 +94,7 @@ export interface GetMarketsResponse {
 }
 export interface SingleMarketInfo {
   base_currency: CurrencyInfo;
+  market_id: number;
   quote_currency: CurrencyInfo;
 }
 export type OrderSide = "buy" | "sell";

@@ -61,10 +61,6 @@ async function main() {
         label: "Get my currently placed ask orders",
         value: "get-asks",
       },
-      {
-        label: "Cancel an order",
-        value: "cancel",
-      },
     ],
   })) as ACTION;
 
@@ -135,10 +131,6 @@ async function main() {
       }
       break;
 
-    case "remove":
-      // wallet.seleneClient.
-      console.log(red("remove is not implemented yet"));
-      break;
 
     case "get-bids":
       try {
@@ -176,8 +168,15 @@ async function main() {
       console.log(red("remove is not implemented yet"));
       break;
 
-    case "cancel":
+    case "remove":
       //wallet.seleneClient.
+      return
+      // TODO: need to get current orders to prompt which one to remove
+      wallet.seleneClient.removeLimitOrder({
+        marketId: MARKET_ID,
+        price: "1.1"
+      })
+      
     break;
     default:
       break;

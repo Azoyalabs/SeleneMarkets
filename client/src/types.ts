@@ -37,6 +37,5 @@ const ACTIONS = [
   "get-market",
   "get-bids",
   "get-asks",
-  "cancel"
 ] as const;
 export type ACTION = (typeof ACTIONS)[number];
