@@ -194,8 +194,6 @@ mod tests {
             .execute_contract(user_1.clone(), market_addr.clone(), &msg, &[])
             .unwrap();
 
-        return;
-
         // check no orders remaining
         let msg = QueryMsg::GetUserBids {
             user_address: user_1.clone(),
@@ -228,5 +226,70 @@ mod tests {
             .unwrap();
         assert_eq!(res.bids.len(), 0);
         assert_eq!(res.asks.len(), 0);
+    }
+
+    mod native_taker_orders {
+        use super::*;
+
+        #[test]
+        fn native_limit_taker() {
+            let (mut router, market_addr) = instantiate_selene();
+            create_market_native_only_pair(&mut router, market_addr.clone());
+
+            let user_1 = Addr::unchecked(TEST_USER_1);
+
+            // mint some native denom of base currency
+            let amount_order = Coin {
+                denom: NATIVE_DENOM_2.into(),
+                amount: Uint128::new(10000),
+            };
+
+            router.mint_native(&user_1, amount_order.clone());
+
+            // send the order
+            let order_price = Decimal::one();
+
+            let msg = ExecuteMsg::LimitOrder {
+                market_id: 0,
+                price: order_price.clone(),
+                //order_side: OrderSide::Buy,
+            };
+
+            let _res = router
+                .execute_contract(
+                    user_1.clone(),
+                    market_addr.clone(),
+                    &msg,
+                    &[amount_order.clone()],
+                )
+                .unwrap();
+
+            // now send taker order
+            // mint some native denom of quote currency
+            let amount_order = Coin {
+                denom: NATIVE_DENOM_1.into(),
+                amount: Uint128::new(10000),
+            };
+
+            router.mint_native(&user_1, amount_order.clone());
+
+            let order_price = Decimal::one();
+
+            let msg = ExecuteMsg::LimitOrder {
+                market_id: 0,
+                price: order_price.clone(),
+                //order_side: OrderSide::Buy,
+            };
+
+            return;
+
+            let _res = router.execute_contract(
+                user_1.clone(),
+                market_addr.clone(),
+                &msg,
+                &[amount_order.clone()],
+            );
+            //.unwrap();
+        }
     }
 }

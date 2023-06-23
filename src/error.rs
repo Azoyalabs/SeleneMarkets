@@ -23,4 +23,7 @@ pub enum ContractError {
 
     #[error("Order to cancel does not exist")]
     OrderDoesNotExist {},
+
+    #[error("Not enough liquidity to execute market order")]
+    NotEnoughLiquidityMarketOrder {},
 }

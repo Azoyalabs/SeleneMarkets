@@ -50,6 +50,7 @@ pub fn add_market(
         deps.storage,
         curr_id,
         &MarketInfo {
+            market_id: curr_id,
             base_currency: base_currency,
             quote_currency: quote_currency,
             top_level_bid: None,

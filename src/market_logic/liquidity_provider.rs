@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use cosmwasm_std::{Decimal, DepsMut, MessageInfo, Response, Uint128};
+use cosmwasm_std::{Addr, Decimal, DepsMut, Response, Uint128};
 
 use crate::{
     state::{LEVELS_DATA, LEVEL_ORDERS, MARKET_INFO},
@@ -11,7 +11,7 @@ use crate::{
 
 pub fn process_limit_maker(
     deps: DepsMut,
-    info: MessageInfo,
+    sender: Addr,
     market_id: u64,
     order_price: Decimal,
     order_quantity: Uint128,
@@ -65,7 +65,7 @@ pub fn process_limit_maker(
                         };
 
                         let level_orders = vec![LevelOrder {
-                            user: info.sender.clone(),
+                            user: sender.clone(),
                             amount: order_quantity,
                         }];
 
@@ -86,7 +86,7 @@ pub fn process_limit_maker(
                         };
 
                         let level_orders = vec![LevelOrder {
-                            user: info.sender.clone(),
+                            user: sender.clone(),
                             amount: order_quantity,
                         }];
 
@@ -129,7 +129,7 @@ pub fn process_limit_maker(
                     };
 
                     let level_orders = vec![LevelOrder {
-                        user: info.sender.clone(),
+                        user: sender.clone(),
                         amount: order_quantity,
                     }];
 
@@ -188,7 +188,7 @@ pub fn process_limit_maker(
                         |elem| -> Result<_, ContractError> {
                             let mut elem = elem.unwrap();
                             elem.push(LevelOrder {
-                                user: info.sender.clone(),
+                                user: sender.clone(),
                                 amount: order_quantity,
                             });
 
@@ -252,7 +252,7 @@ mod tests {
 
             process_limit_maker(
                 deps.as_mut(),
-                info,
+                Addr::unchecked("user"),
                 0,
                 Decimal::one(),
                 Uint128::new(100),
@@ -284,7 +284,7 @@ mod tests {
 
             process_limit_maker(
                 deps.as_mut(),
-                info.clone(),
+                Addr::unchecked("user").clone(),
                 0,
                 Decimal::one(),
                 Uint128::new(100),
@@ -294,7 +294,7 @@ mod tests {
 
             process_limit_maker(
                 deps.as_mut(),
-                info,
+                Addr::unchecked("user"),
                 0,
                 Decimal::one(),
                 Uint128::new(100),
@@ -329,7 +329,7 @@ mod tests {
 
             process_limit_maker(
                 deps.as_mut(),
-                info.clone(),
+                Addr::unchecked("user").clone(),
                 0,
                 top_price.clone(),
                 Uint128::new(100),
@@ -339,7 +339,7 @@ mod tests {
 
             process_limit_maker(
                 deps.as_mut(),
-                info.clone(),
+                Addr::unchecked("user").clone(),
                 0,
                 Decimal::one(),
                 Uint128::new(100),
@@ -384,7 +384,7 @@ mod tests {
 
             process_limit_maker(
                 deps.as_mut(),
-                info.clone(),
+                Addr::unchecked("user").clone(),
                 0,
                 Decimal::one(),
                 Uint128::new(100),
@@ -394,7 +394,7 @@ mod tests {
 
             process_limit_maker(
                 deps.as_mut(),
-                info.clone(),
+                Addr::unchecked("user").clone(),
                 0,
                 top_price.clone(),
                 Uint128::new(100),
@@ -440,7 +440,7 @@ mod tests {
 
             process_limit_maker(
                 deps.as_mut(),
-                info.clone(),
+                Addr::unchecked("user").clone(),
                 0,
                 mid_price,
                 Uint128::new(100),
@@ -450,7 +450,7 @@ mod tests {
 
             process_limit_maker(
                 deps.as_mut(),
-                info.clone(),
+                Addr::unchecked("user").clone(),
                 0,
                 top_price.clone(),
                 Uint128::new(100),
@@ -460,7 +460,7 @@ mod tests {
 
             process_limit_maker(
                 deps.as_mut(),
-                info.clone(),
+                Addr::unchecked("user").clone(),
                 0,
                 bottom_price.clone(),
                 Uint128::new(100),
@@ -526,7 +526,7 @@ mod tests {
 
             process_limit_maker(
                 deps.as_mut(),
-                info,
+                Addr::unchecked("user"),
                 0,
                 Decimal::one(),
                 Uint128::new(100),
@@ -558,7 +558,7 @@ mod tests {
 
             process_limit_maker(
                 deps.as_mut(),
-                info.clone(),
+                Addr::unchecked("user").clone(),
                 0,
                 Decimal::one(),
                 Uint128::new(100),
@@ -568,7 +568,7 @@ mod tests {
 
             process_limit_maker(
                 deps.as_mut(),
-                info,
+                Addr::unchecked("user"),
                 0,
                 Decimal::one(),
                 Uint128::new(100),
@@ -603,7 +603,7 @@ mod tests {
 
             process_limit_maker(
                 deps.as_mut(),
-                info.clone(),
+                Addr::unchecked("user").clone(),
                 0,
                 top_price.clone(),
                 Uint128::new(100),
@@ -613,7 +613,7 @@ mod tests {
 
             process_limit_maker(
                 deps.as_mut(),
-                info.clone(),
+                Addr::unchecked("user").clone(),
                 0,
                 Decimal::one(),
                 Uint128::new(100),
@@ -658,7 +658,7 @@ mod tests {
 
             process_limit_maker(
                 deps.as_mut(),
-                info.clone(),
+                Addr::unchecked("user").clone(),
                 0,
                 Decimal::one(),
                 Uint128::new(100),
@@ -668,7 +668,7 @@ mod tests {
 
             process_limit_maker(
                 deps.as_mut(),
-                info.clone(),
+                Addr::unchecked("user").clone(),
                 0,
                 top_price.clone(),
                 Uint128::new(100),
@@ -714,7 +714,7 @@ mod tests {
 
             process_limit_maker(
                 deps.as_mut(),
-                info.clone(),
+                Addr::unchecked("user").clone(),
                 0,
                 mid_price,
                 Uint128::new(100),
@@ -724,7 +724,7 @@ mod tests {
 
             process_limit_maker(
                 deps.as_mut(),
-                info.clone(),
+                Addr::unchecked("user").clone(),
                 0,
                 top_price.clone(),
                 Uint128::new(100),
@@ -734,7 +734,7 @@ mod tests {
 
             process_limit_maker(
                 deps.as_mut(),
-                info.clone(),
+                Addr::unchecked("user").clone(),
                 0,
                 bottom_price.clone(),
                 Uint128::new(100),

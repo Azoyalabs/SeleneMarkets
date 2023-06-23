@@ -546,11 +546,17 @@
           "type": "object",
           "required": [
             "base_currency",
+            "market_id",
             "quote_currency"
           ],
           "properties": {
             "base_currency": {
               "$ref": "#/definitions/CurrencyInfo"
+            },
+            "market_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
             },
             "quote_currency": {
               "$ref": "#/definitions/CurrencyInfo"

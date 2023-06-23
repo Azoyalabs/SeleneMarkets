@@ -105,7 +105,9 @@ fn get_user_orders(
     user_address: Addr,
     target_market: Option<u64>,
 ) -> Box<dyn Serialize> {
-    let user_orders = USER_ORDERS.load(deps.storage, user_address).unwrap();
+    let user_orders = USER_ORDERS
+        .load(deps.storage, user_address)
+        .unwrap_or_default();
 
     let user_orders = match target_market {
         None => user_orders,
@@ -121,7 +123,9 @@ fn get_user_orders(
 }
 
 fn get_user_bids(deps: Deps, user_address: Addr, target_market: Option<u64>) -> Box<dyn Serialize> {
-    let user_orders = USER_ORDERS.load(deps.storage, user_address).unwrap();
+    let user_orders = USER_ORDERS
+        .load(deps.storage, user_address)
+        .unwrap_or_default();
 
     let user_orders = match target_market {
         None => user_orders,
@@ -139,7 +143,9 @@ fn get_user_bids(deps: Deps, user_address: Addr, target_market: Option<u64>) -> 
 }
 
 fn get_user_asks(deps: Deps, user_address: Addr, target_market: Option<u64>) -> Box<dyn Serialize> {
-    let user_orders = USER_ORDERS.load(deps.storage, user_address).unwrap();
+    let user_orders = USER_ORDERS
+        .load(deps.storage, user_address)
+        .unwrap_or_default();
 
     let user_orders = match target_market {
         None => user_orders,
@@ -193,6 +199,7 @@ fn get_markets(deps: Deps) -> Box<dyn Serialize> {
         .filter_map(|elem| match elem {
             Err(_) => None,
             Ok((_, market_info)) => Some(SingleMarketInfo {
+                market_id: market_info.market_id,
                 quote_currency: market_info.quote_currency,
                 base_currency: market_info.base_currency,
             }),

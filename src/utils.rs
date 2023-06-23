@@ -4,12 +4,48 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-use cosmwasm_std::{Coin, Decimal, MessageInfo, Uint128};
+use cosmwasm_std::{
+    to_binary, Addr, BankMsg, Coin, CosmosMsg, Decimal, MessageInfo, Uint128, WasmMsg,
+};
 
 use crate::{
-    structs::{CurrencyStatus, MarketInfo},
+    structs::{CurrencyInfo, CurrencyStatus, MarketInfo},
     ContractError,
 };
+
+/// Wrap native and cw20 transfer messages in one function
+pub fn create_funds_message(
+    amount: Uint128,
+    currency_info: CurrencyInfo,
+    beneficiary: Addr,
+) -> CosmosMsg {
+    return match currency_info {
+        CurrencyInfo::Native { denom } => {
+            let bank_msg = BankMsg::Send {
+                to_address: beneficiary.to_string(),
+                amount: vec![Coin {
+                    amount: amount,
+                    denom: denom,
+                }],
+            };
+
+            CosmosMsg::Bank(bank_msg)
+        }
+        CurrencyInfo::Cw20 { address } => {
+            let cw20_msg = cw20::Cw20ExecuteMsg::Transfer {
+                recipient: beneficiary.to_string(),
+                amount: amount,
+            };
+            let wasm_msg = WasmMsg::Execute {
+                contract_addr: address,
+                msg: to_binary(&cw20_msg).unwrap(),
+                funds: vec![],
+            };
+
+            CosmosMsg::Wasm(wasm_msg)
+        }
+    };
+}
 
 /// Compute midprice for a market
 pub fn compute_midprice(bid_price: Decimal, ask_price: Decimal) -> Decimal {

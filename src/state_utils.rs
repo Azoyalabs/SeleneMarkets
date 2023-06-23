@@ -5,6 +5,28 @@ use crate::{
     ContractError,
 };
 
+pub fn remove_previous_id(storage: &mut dyn Storage, level_id: u64) -> Result<(), ContractError> {
+    LEVELS_DATA.update(storage, level_id, |data| -> Result<_, ContractError> {
+        let mut data = data.unwrap();
+        data.id_previous = None;
+
+        return Ok(data);
+    })?;
+
+    return Ok(());
+}
+
+pub fn remove_next_id(storage: &mut dyn Storage, level_id: u64) -> Result<(), ContractError> {
+    LEVELS_DATA.update(storage, level_id, |data| -> Result<_, ContractError> {
+        let mut data = data.unwrap();
+        data.id_next = None;
+
+        return Ok(data);
+    })?;
+
+    return Ok(());
+}
+
 /// Remove level data at id and joins previous and next in linked list  
 /// If it is top of book, update
 /// Also remove level orders at given id
@@ -104,7 +126,7 @@ mod tests {
 
         process_limit_maker(
             deps.as_mut(),
-            info.clone(),
+            Addr::unchecked("user").clone(),
             0,
             Decimal::one(),
             Uint128::new(100),
@@ -149,7 +171,7 @@ mod tests {
 
         process_limit_maker(
             deps.as_mut(),
-            info.clone(),
+            Addr::unchecked("user").clone(),
             0,
             Decimal::one(),
             Uint128::new(100),
@@ -160,7 +182,7 @@ mod tests {
         let top_price = Decimal::from_atomics(Uint128::new(1128), 3).unwrap();
         process_limit_maker(
             deps.as_mut(),
-            info.clone(),
+            Addr::unchecked("user").clone(),
             0,
             top_price,
             Uint128::new(100),
@@ -212,7 +234,7 @@ mod tests {
 
         process_limit_maker(
             deps.as_mut(),
-            info.clone(),
+            Addr::unchecked("user").clone(),
             0,
             Decimal::one(),
             Uint128::new(100),
@@ -223,7 +245,7 @@ mod tests {
         let top_price = Decimal::from_atomics(Uint128::new(1128), 3).unwrap();
         process_limit_maker(
             deps.as_mut(),
-            info.clone(),
+            Addr::unchecked("user").clone(),
             0,
             top_price,
             Uint128::new(100),
@@ -279,7 +301,7 @@ mod tests {
         let middle_price = Decimal::one();
         process_limit_maker(
             deps.as_mut(),
-            info.clone(),
+            Addr::unchecked("user").clone(),
             0,
             middle_price,
             Uint128::new(100),
@@ -290,7 +312,7 @@ mod tests {
         let top_price = Decimal::from_atomics(Uint128::new(1128), 3).unwrap();
         process_limit_maker(
             deps.as_mut(),
-            info.clone(),
+            Addr::unchecked("user").clone(),
             0,
             top_price,
             Uint128::new(100),
@@ -301,7 +323,7 @@ mod tests {
         let bottom_price = Decimal::from_atomics(Uint128::new(976), 3).unwrap();
         process_limit_maker(
             deps.as_mut(),
-            info.clone(),
+            Addr::unchecked("user").clone(),
             0,
             bottom_price,
             Uint128::new(100),
@@ -384,7 +406,7 @@ mod tests {
         let middle_price = Decimal::one();
         process_limit_maker(
             deps.as_mut(),
-            info.clone(),
+            Addr::unchecked("user").clone(),
             0,
             middle_price,
             Uint128::new(100),
@@ -395,7 +417,7 @@ mod tests {
         let top_price = Decimal::from_atomics(Uint128::new(1128), 3).unwrap();
         process_limit_maker(
             deps.as_mut(),
-            info.clone(),
+            Addr::unchecked("user").clone(),
             0,
             top_price,
             Uint128::new(100),
@@ -406,7 +428,7 @@ mod tests {
         let bottom_price = Decimal::from_atomics(Uint128::new(976), 3).unwrap();
         process_limit_maker(
             deps.as_mut(),
-            info.clone(),
+            Addr::unchecked("user").clone(),
             0,
             bottom_price,
             Uint128::new(100),
@@ -489,7 +511,7 @@ mod tests {
         let middle_price = Decimal::one();
         process_limit_maker(
             deps.as_mut(),
-            info.clone(),
+            Addr::unchecked("user").clone(),
             0,
             middle_price,
             Uint128::new(100),
@@ -500,7 +522,7 @@ mod tests {
         let top_price = Decimal::from_atomics(Uint128::new(1128), 3).unwrap();
         process_limit_maker(
             deps.as_mut(),
-            info.clone(),
+            Addr::unchecked("user").clone(),
             0,
             top_price,
             Uint128::new(100),
@@ -511,7 +533,7 @@ mod tests {
         let bottom_price = Decimal::from_atomics(Uint128::new(976), 3).unwrap();
         process_limit_maker(
             deps.as_mut(),
-            info.clone(),
+            Addr::unchecked("user").clone(),
             0,
             bottom_price,
             Uint128::new(100),
