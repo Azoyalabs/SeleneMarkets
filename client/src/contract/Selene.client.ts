@@ -6,20 +6,39 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { Coin, StdFee } from "@cosmjs/amino";
-import { InstantiateMsg, ExecuteMsg, Uint128, Binary, OrderSide, Decimal, AdminExecuteMsg, CurrencyInfo, Cw20ReceiveMsg, QueryMsg, Addr, GetAdminResponse, GetUserAsks, UserOrder, GetUserBids } from "./Selene.types.js";
+import { InstantiateMsg, ExecuteMsg, Uint128, Binary, Decimal, AdminExecuteMsg, CurrencyInfo, Cw20ReceiveMsg, QueryMsg, Addr, GetAdminResponse, Uint256, GetMarketBookResponse, BookLevel, GetMarketsResponse, SingleMarketInfo, OrderSide, GetUserAsksResponse, UserOrderRecord, GetUserBidsResponse, GetUserOrdersResponse } from "./Selene.types.js";
 export interface SeleneReadOnlyInterface {
   contractAddress: string;
   getAdmin: () => Promise<GetAdminResponse>;
+  getMarkets: () => Promise<GetMarketsResponse>;
   getUserBids: ({
-    targetMarket
+    targetMarket,
+    userAddress
   }: {
     targetMarket?: number;
-  }) => Promise<GetUserBids>;
+    userAddress: Addr;
+  }) => Promise<GetUserBidsResponse>;
   getUserAsks: ({
-    targetMarket
+    targetMarket,
+    userAddress
   }: {
     targetMarket?: number;
-  }) => Promise<GetUserAsks>;
+    userAddress: Addr;
+  }) => Promise<GetUserAsksResponse>;
+  getUserOrders: ({
+    targetMarket,
+    userAddress
+  }: {
+    targetMarket?: number;
+    userAddress: Addr;
+  }) => Promise<GetUserOrdersResponse>;
+  getMarketBook: ({
+    marketId,
+    nbLevels
+  }: {
+    marketId: number;
+    nbLevels: number;
+  }) => Promise<GetMarketBookResponse>;
 }
 export class SeleneQueryClient implements SeleneReadOnlyInterface {
   client: CosmWasmClient;
@@ -29,8 +48,11 @@ export class SeleneQueryClient implements SeleneReadOnlyInterface {
     this.client = client;
     this.contractAddress = contractAddress;
     this.getAdmin = this.getAdmin.bind(this);
+    this.getMarkets = this.getMarkets.bind(this);
     this.getUserBids = this.getUserBids.bind(this);
     this.getUserAsks = this.getUserAsks.bind(this);
+    this.getUserOrders = this.getUserOrders.bind(this);
+    this.getMarketBook = this.getMarketBook.bind(this);
   }
 
   getAdmin = async (): Promise<GetAdminResponse> => {
@@ -38,25 +60,64 @@ export class SeleneQueryClient implements SeleneReadOnlyInterface {
       get_admin: {}
     });
   };
+  getMarkets = async (): Promise<GetMarketsResponse> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      get_markets: {}
+    });
+  };
   getUserBids = async ({
-    targetMarket
+    targetMarket,
+    userAddress
   }: {
     targetMarket?: number;
-  }): Promise<GetUserBids> => {
+    userAddress: Addr;
+  }): Promise<GetUserBidsResponse> => {
     return this.client.queryContractSmart(this.contractAddress, {
       get_user_bids: {
-        target_market: targetMarket
+        target_market: targetMarket,
+        user_address: userAddress
       }
     });
   };
   getUserAsks = async ({
-    targetMarket
+    targetMarket,
+    userAddress
   }: {
     targetMarket?: number;
-  }): Promise<GetUserAsks> => {
+    userAddress: Addr;
+  }): Promise<GetUserAsksResponse> => {
     return this.client.queryContractSmart(this.contractAddress, {
       get_user_asks: {
-        target_market: targetMarket
+        target_market: targetMarket,
+        user_address: userAddress
+      }
+    });
+  };
+  getUserOrders = async ({
+    targetMarket,
+    userAddress
+  }: {
+    targetMarket?: number;
+    userAddress: Addr;
+  }): Promise<GetUserOrdersResponse> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      get_user_orders: {
+        target_market: targetMarket,
+        user_address: userAddress
+      }
+    });
+  };
+  getMarketBook = async ({
+    marketId,
+    nbLevels
+  }: {
+    marketId: number;
+    nbLevels: number;
+  }): Promise<GetMarketBookResponse> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      get_market_book: {
+        market_id: marketId,
+        nb_levels: nbLevels
       }
     });
   };
@@ -75,17 +136,22 @@ export interface SeleneInterface extends SeleneReadOnlyInterface {
   }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   limitOrder: ({
     marketId,
-    orderSide,
     price
   }: {
     marketId: number;
-    orderSide: OrderSide;
     price: Decimal;
   }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   marketOrder: ({
     marketId
   }: {
     marketId: number;
+  }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
+  removeLimitOrder: ({
+    marketId,
+    price
+  }: {
+    marketId: number;
+    price: Decimal;
   }, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   admin: (adminExecuteMsg: AdminExecuteMsg, fee?: number | StdFee | "auto", memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
 }
@@ -102,6 +168,7 @@ export class SeleneClient extends SeleneQueryClient implements SeleneInterface {
     this.receive = this.receive.bind(this);
     this.limitOrder = this.limitOrder.bind(this);
     this.marketOrder = this.marketOrder.bind(this);
+    this.removeLimitOrder = this.removeLimitOrder.bind(this);
     this.admin = this.admin.bind(this);
   }
 
@@ -124,17 +191,14 @@ export class SeleneClient extends SeleneQueryClient implements SeleneInterface {
   };
   limitOrder = async ({
     marketId,
-    orderSide,
     price
   }: {
     marketId: number;
-    orderSide: OrderSide;
     price: Decimal;
   }, fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       limit_order: {
         market_id: marketId,
-        order_side: orderSide,
         price
       }
     }, fee, memo, _funds);
@@ -147,6 +211,20 @@ export class SeleneClient extends SeleneQueryClient implements SeleneInterface {
     return await this.client.execute(this.sender, this.contractAddress, {
       market_order: {
         market_id: marketId
+      }
+    }, fee, memo, _funds);
+  };
+  removeLimitOrder = async ({
+    marketId,
+    price
+  }: {
+    marketId: number;
+    price: Decimal;
+  }, fee: number | StdFee | "auto" = "auto", memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
+    return await this.client.execute(this.sender, this.contractAddress, {
+      remove_limit_order: {
+        market_id: marketId,
+        price
       }
     }, fee, memo, _funds);
   };

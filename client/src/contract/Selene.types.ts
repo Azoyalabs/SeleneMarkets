@@ -10,7 +10,6 @@ export type ExecuteMsg = {
 } | {
   limit_order: {
     market_id: number;
-    order_side: OrderSide;
     price: Decimal;
   };
 } | {
@@ -18,11 +17,15 @@ export type ExecuteMsg = {
     market_id: number;
   };
 } | {
+  remove_limit_order: {
+    market_id: number;
+    price: Decimal;
+  };
+} | {
   admin: AdminExecuteMsg;
 };
 export type Uint128 = string;
 export type Binary = string;
-export type OrderSide = "buy" | "sell";
 export type Decimal = string;
 export type AdminExecuteMsg = {
   update_admin: {
@@ -51,26 +54,61 @@ export interface Cw20ReceiveMsg {
 export type QueryMsg = {
   get_admin: {};
 } | {
+  get_markets: {};
+} | {
   get_user_bids: {
     target_market?: number | null;
+    user_address: Addr;
   };
 } | {
   get_user_asks: {
     target_market?: number | null;
+    user_address: Addr;
+  };
+} | {
+  get_user_orders: {
+    target_market?: number | null;
+    user_address: Addr;
+  };
+} | {
+  get_market_book: {
+    market_id: number;
+    nb_levels: number;
   };
 };
 export type Addr = string;
 export interface GetAdminResponse {
   admin?: Addr | null;
 }
-export interface GetUserAsks {
-  orders: UserOrder[];
+export type Uint256 = string;
+export interface GetMarketBookResponse {
+  asks: BookLevel[];
+  bids: BookLevel[];
 }
-export interface UserOrder {
+export interface BookLevel {
+  price: Decimal;
+  quantity: Uint256;
+}
+export interface GetMarketsResponse {
+  markets: SingleMarketInfo[];
+}
+export interface SingleMarketInfo {
+  base_currency: CurrencyInfo;
+  quote_currency: CurrencyInfo;
+}
+export type OrderSide = "buy" | "sell";
+export interface GetUserAsksResponse {
+  orders: UserOrderRecord[];
+}
+export interface UserOrderRecord {
   market_id: number;
+  order_side: OrderSide;
   price: Decimal;
   quantity: Uint128;
 }
-export interface GetUserBids {
-  orders: UserOrder[];
+export interface GetUserBidsResponse {
+  orders: UserOrderRecord[];
+}
+export interface GetUserOrdersResponse {
+  orders: UserOrderRecord[];
 }

@@ -11,17 +11,14 @@ export type SeleneCw20Msg =
   | {
       limit_order: {
         market_id: number;
-        order_side: OrderSide;
         price: Decimal;
       };
     }
   | {
       market_order: {
         market_id: number;
-        order_side: OrderSide;
       };
     };
-export type OrderSide = "buy" | "sell";
 export type Decimal = string;
 
 /**
@@ -30,7 +27,7 @@ export type Decimal = string;
 export interface CW20SendMessage {
   contract: string;
   amount: string;
-  msg: SeleneCw20Msg;
+  msg: string; // base64 encoded SeleneCW20Msg
 }
 
 const ACTIONS = [
@@ -40,5 +37,6 @@ const ACTIONS = [
   "get-market",
   "get-bids",
   "get-asks",
+  "cancel"
 ] as const;
 export type ACTION = (typeof ACTIONS)[number];

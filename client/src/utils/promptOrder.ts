@@ -20,6 +20,7 @@ export async function OrderCreationPrompt(
     (tok) => tok.address !== selectedToken.address
   );
 
+  // There's only one market, so we're only asking for good measure
   const against = (await p.select({
     options: remainingTokens.map((tok) => {
       return {
@@ -33,19 +34,51 @@ export async function OrderCreationPrompt(
   const amount = (await p.text({
     message: `How Many`,
     validate: (value) => {
-      const regex = new RegExp("[0-9]+");
+      const regex = new RegExp(/^\d+(\.\d{1,2})?$/);
+      //const regex = new RegExp("[0-9]+");
       if (!value) {
         return "Amount is required!";
       }
       if (!regex.test(value)) {
-        return "Only numbers are allowed!";
+        //return value
+        return "Only numbers are allowed, try again!";
       }
     },
   })) as string;
+
+  const price = await p.text({
+    message: "Set a price",
+    validate: (value) => {
+      // const regex = new RegExp("/^\d*\.?\d*$/")
+      const regex = new RegExp(/^\d+(\.\d{1,2})?$/);
+
+      if (!value) {
+        return "Price is required!";
+      }
+      if (!regex.test(value)) {
+        // return value;
+        return "Only numbers are allowed!";
+      }
+    },
+  });
 
   const shouldContinue = await p.confirm({
     message: `Do you want to ${side} ${parseInt(amount)} ${
       selectedToken.symbol
     }`,
   });
+
+  // amount has to take decimals into account
+  if (shouldContinue) {
+    const amountIncludingDecimals = (
+      parseInt(amount) * Math.pow(10, selectedToken.decimals)
+    ).toString();
+    return {
+      token: selectedToken.address,
+      amount: amountIncludingDecimals,
+      price: price as string,
+    };
+  } else {
+    return null;
+  }
 }

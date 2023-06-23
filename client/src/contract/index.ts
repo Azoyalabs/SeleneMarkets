@@ -4,8 +4,8 @@
 * and run the @cosmwasm/ts-codegen generate command to regenerate this file.
 */
 
-import * as _0 from "./Selene.types";
-import * as _1 from "./Selene.client";
+import * as _0 from "./Selene.types.js";
+import * as _1 from "./Selene.client.js";
 export namespace contracts {
   export const Selene = { ..._0,
     ..._1

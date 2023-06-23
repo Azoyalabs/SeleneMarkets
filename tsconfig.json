@@ -17,7 +17,7 @@
     "noUnusedLocals": false,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "outDir": "./client/dist",
+    "outDir": "./client/dist"
   },
   "include": ["./client/src"]
 }

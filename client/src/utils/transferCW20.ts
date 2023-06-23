@@ -12,7 +12,12 @@ export async function transferCW20WithMessage(
   const tokenSendMessage: CW20SendMessage = {
     contract: MARKETPLACE_ADDRESS,
     amount: amount,
-    msg: message,
+    msg: Buffer.from(JSON.stringify(message)).toString("base64"),
   };
-  return signer.execute(sender, tokenAddress, tokenSendMessage, "auto");
+
+  const executeMsg = {
+    send: tokenSendMessage,
+  };
+
+  return signer.execute(sender, tokenAddress, executeMsg, "auto");
 }
