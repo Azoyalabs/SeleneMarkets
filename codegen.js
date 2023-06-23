@@ -7,7 +7,7 @@ async function main() {
       {
         name: "selene",
         dir: "./schema",
-      },
+      }
     ],
     outPath: "./client/src/contract",
 

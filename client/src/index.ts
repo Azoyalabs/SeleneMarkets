@@ -5,7 +5,8 @@ import { ALICE_MNEMONIC, BOB_MNEMONIC } from "./constants.js";
 import { makeWallet } from "./utils/makeWallet.js";
 import { queryTokenBalances } from "./actions/balance.js";
 import { OrderCreationPrompt } from "./utils/promptOrder.js";
-import { ACTION } from "./types.js";
+import { ACTION, SeleneCw20Msg } from "./types.js";
+import { transferCW20WithMessage } from "./utils/transferCW20.js";
 
 p.intro(inverse(cyan("Selene Markets - Archway Hackathon edition")));
 
@@ -64,45 +65,60 @@ async function main() {
   })) as ACTION;
 
   switch (action) {
-    case "set-sell": {
-      const prompt = await OrderCreationPrompt(balances, "sell");
+    case "set-sell":
+      const sellPrompt = await OrderCreationPrompt(balances, "sell");
+      // prompt.amount
+      const limitSellMsg: SeleneCw20Msg = {
+        limit_order: {
+          market_id: 1,
+          order_side: "sell",
+          price: "price",
+        },
+      };
+
+      const putSellOrder = await transferCW20WithMessage(
+        wallet.address,
+        "amount",
+        "tokenAddress",
+        limitSellMsg,
+        wallet.cosmwasmSigner
+      );
       break;
-    }
-    case "set-buy": {
-      const prompt = await OrderCreationPrompt(balances, "buy");
+
+    case "set-buy":
+      const buyPrompt = await OrderCreationPrompt(balances, "buy");
       break;
-    }
-    case "remove": {
+
+    case "remove":
       // wallet.seleneClient.
       console.log(red("remove is not implemented yet"));
       break;
-    }
-    case "get-bids": {
-      const { orders } = await wallet.seleneClient.getUserBids({
+
+    case "get-bids":
+      const { orders: bidOrders } = await wallet.seleneClient.getUserBids({
         targetMarket: 1,
       });
       console.log(gray(`Current open bid orders`));
       console.table(
-        orders.map((o) => ({ price: o.price, quantity: o.quantity }))
+        bidOrders.map((o) => ({ price: o.price, quantity: o.quantity }))
       );
 
       break;
-    }
-    case "get-asks": {
-      const { orders } = await wallet.seleneClient.getUserAsks({
+
+    case "get-asks":
+      const { orders: askOrders } = await wallet.seleneClient.getUserAsks({
         targetMarket: 1,
       });
       console.log(gray(`Current open sell orders`));
       console.table(
-        orders.map((o) => ({ price: o.price, quantity: o.quantity }))
+        askOrders.map((o) => ({ price: o.price, quantity: o.quantity }))
       );
 
       break;
-    }
-    case "get-market": {
+
+    case "get-market":
       console.log(red("remove is not implemented yet"));
       break;
-    }
     default:
       break;
   }

@@ -1,4 +1,3 @@
-
 export interface FullBalance {
   name: string;
   symbol: string;
@@ -8,24 +7,30 @@ export interface FullBalance {
   address: string;
 }
 
-/*
-LimitOrder {
-        market_id: u64,
-        price: Decimal,
-        order_side: OrderSide,
-    },
-    MarketOrder {
-        market_id: u64,
-        order_side: OrderSide,
-    },*/
+export type SeleneCw20Msg =
+  | {
+      limit_order: {
+        market_id: number;
+        order_side: OrderSide;
+        price: Decimal;
+      };
+    }
+  | {
+      market_order: {
+        market_id: number;
+        order_side: OrderSide;
+      };
+    };
+export type OrderSide = "buy" | "sell";
+export type Decimal = string;
 
 /**
  * Use send so we trigger the receiver interface
  */
 export interface CW20SendMessage {
-  contract: string,
-  amount: string,
-  msg: Record<string, unknown>
+  contract: string;
+  amount: string;
+  msg: SeleneCw20Msg;
 }
 
 const ACTIONS = [

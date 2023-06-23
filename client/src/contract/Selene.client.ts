@@ -6,7 +6,7 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { Coin, StdFee } from "@cosmjs/amino";
-import { InstantiateMsg, ExecuteMsg, Uint128, Binary, OrderSide, Decimal, AdminExecuteMsg, CurrencyInfo, Cw20ReceiveMsg, QueryMsg, Addr, GetAdminResponse, GetUserAsks, UserOrder, GetUserBids } from "./Selene.types";
+import { InstantiateMsg, ExecuteMsg, Uint128, Binary, OrderSide, Decimal, AdminExecuteMsg, CurrencyInfo, Cw20ReceiveMsg, QueryMsg, Addr, GetAdminResponse, GetUserAsks, UserOrder, GetUserBids } from "./Selene.types.js";
 export interface SeleneReadOnlyInterface {
   contractAddress: string;
   getAdmin: () => Promise<GetAdminResponse>;
