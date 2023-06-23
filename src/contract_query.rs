@@ -193,6 +193,7 @@ fn get_markets(deps: Deps) -> Box<dyn Serialize> {
         .filter_map(|elem| match elem {
             Err(_) => None,
             Ok((_, market_info)) => Some(SingleMarketInfo {
+                market_id: market_info.market_id,
                 quote_currency: market_info.quote_currency,
                 base_currency: market_info.base_currency,
             }),

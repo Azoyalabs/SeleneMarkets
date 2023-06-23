@@ -35,6 +35,7 @@ pub enum CurrencyStatus {
 
 #[cw_serde]
 pub struct MarketInfo {
+    pub market_id: u64,
     pub base_currency: CurrencyInfo,
     pub quote_currency: CurrencyInfo,
     pub top_level_bid: Option<u64>, // Option<u64>
@@ -43,6 +44,7 @@ pub struct MarketInfo {
 
 #[cw_serde]
 pub struct SingleMarketInfo {
+    pub market_id: u64,
     pub base_currency: CurrencyInfo,
     pub quote_currency: CurrencyInfo,
 }

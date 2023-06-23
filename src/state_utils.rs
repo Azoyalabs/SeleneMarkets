@@ -104,7 +104,7 @@ mod tests {
 
         process_limit_maker(
             deps.as_mut(),
-            info.clone(),
+            Addr::unchecked("user").clone(),
             0,
             Decimal::one(),
             Uint128::new(100),
@@ -149,7 +149,7 @@ mod tests {
 
         process_limit_maker(
             deps.as_mut(),
-            info.clone(),
+            Addr::unchecked("user").clone(),
             0,
             Decimal::one(),
             Uint128::new(100),
@@ -160,7 +160,7 @@ mod tests {
         let top_price = Decimal::from_atomics(Uint128::new(1128), 3).unwrap();
         process_limit_maker(
             deps.as_mut(),
-            info.clone(),
+            Addr::unchecked("user").clone(),
             0,
             top_price,
             Uint128::new(100),
@@ -212,7 +212,7 @@ mod tests {
 
         process_limit_maker(
             deps.as_mut(),
-            info.clone(),
+            Addr::unchecked("user").clone(),
             0,
             Decimal::one(),
             Uint128::new(100),
@@ -223,7 +223,7 @@ mod tests {
         let top_price = Decimal::from_atomics(Uint128::new(1128), 3).unwrap();
         process_limit_maker(
             deps.as_mut(),
-            info.clone(),
+            Addr::unchecked("user").clone(),
             0,
             top_price,
             Uint128::new(100),
@@ -279,7 +279,7 @@ mod tests {
         let middle_price = Decimal::one();
         process_limit_maker(
             deps.as_mut(),
-            info.clone(),
+            Addr::unchecked("user").clone(),
             0,
             middle_price,
             Uint128::new(100),
@@ -290,7 +290,7 @@ mod tests {
         let top_price = Decimal::from_atomics(Uint128::new(1128), 3).unwrap();
         process_limit_maker(
             deps.as_mut(),
-            info.clone(),
+            Addr::unchecked("user").clone(),
             0,
             top_price,
             Uint128::new(100),
@@ -301,7 +301,7 @@ mod tests {
         let bottom_price = Decimal::from_atomics(Uint128::new(976), 3).unwrap();
         process_limit_maker(
             deps.as_mut(),
-            info.clone(),
+            Addr::unchecked("user").clone(),
             0,
             bottom_price,
             Uint128::new(100),
@@ -384,7 +384,7 @@ mod tests {
         let middle_price = Decimal::one();
         process_limit_maker(
             deps.as_mut(),
-            info.clone(),
+            Addr::unchecked("user").clone(),
             0,
             middle_price,
             Uint128::new(100),
@@ -395,7 +395,7 @@ mod tests {
         let top_price = Decimal::from_atomics(Uint128::new(1128), 3).unwrap();
         process_limit_maker(
             deps.as_mut(),
-            info.clone(),
+            Addr::unchecked("user").clone(),
             0,
             top_price,
             Uint128::new(100),
@@ -406,7 +406,7 @@ mod tests {
         let bottom_price = Decimal::from_atomics(Uint128::new(976), 3).unwrap();
         process_limit_maker(
             deps.as_mut(),
-            info.clone(),
+            Addr::unchecked("user").clone(),
             0,
             bottom_price,
             Uint128::new(100),
@@ -489,7 +489,7 @@ mod tests {
         let middle_price = Decimal::one();
         process_limit_maker(
             deps.as_mut(),
-            info.clone(),
+            Addr::unchecked("user").clone(),
             0,
             middle_price,
             Uint128::new(100),
@@ -500,7 +500,7 @@ mod tests {
         let top_price = Decimal::from_atomics(Uint128::new(1128), 3).unwrap();
         process_limit_maker(
             deps.as_mut(),
-            info.clone(),
+            Addr::unchecked("user").clone(),
             0,
             top_price,
             Uint128::new(100),
@@ -511,7 +511,7 @@ mod tests {
         let bottom_price = Decimal::from_atomics(Uint128::new(976), 3).unwrap();
         process_limit_maker(
             deps.as_mut(),
-            info.clone(),
+            Addr::unchecked("user").clone(),
             0,
             bottom_price,
             Uint128::new(100),
