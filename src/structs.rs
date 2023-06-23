@@ -1,5 +1,5 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, Decimal, Uint128};
+use cosmwasm_std::{Addr, Decimal, Uint128, Uint256};
 use serde::{Deserialize, Serialize};
 
 use crate::ContractError;
@@ -39,6 +39,12 @@ pub struct MarketInfo {
     pub quote_currency: CurrencyInfo,
     pub top_level_bid: Option<u64>, // Option<u64>
     pub top_level_ask: Option<u64>, // Option<u64>
+}
+
+#[cw_serde]
+pub struct SingleMarketInfo {
+    pub base_currency: CurrencyInfo,
+    pub quote_currency: CurrencyInfo,
 }
 
 impl MarketInfo {
@@ -101,10 +107,36 @@ pub struct UserOrder {
 }
 */
 
+/*
 #[derive(Serialize, Deserialize, Debug)]
 pub struct InternalUserOrder {
     pub market_id: u64,
     pub price: Decimal,
+}
+*/
+
+/*
+#[derive(Serialize, Deserialize, Debug)]
+pub struct InternalUserOrder {
+    pub order_side: OrderSide,
+    pub price: Decimal,
+    pub quantity: Uint128,
+}
+*/
+
+#[cw_serde]
+pub struct UserOrderRecord {
+    pub market_id: u64,
+    pub order_side: OrderSide,
+    pub price: Decimal,
+    pub quantity: Uint128,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct TempOrderRep {
+    pub order_side: OrderSide,
+    pub price: Decimal,
+    pub quantity: Uint128,
 }
 
 #[cw_serde]
@@ -121,3 +153,18 @@ pub struct LevelOrder {
 }
 
 pub type LevelOrders = Vec<LevelOrder>;
+
+#[cw_serde]
+pub struct BookLevel {
+    pub price: Decimal,
+    pub quantity: Uint256,
+}
+
+impl BookLevel {
+    pub fn new(price: Decimal) -> Self {
+        return BookLevel {
+            price: price,
+            quantity: Uint256::zero(),
+        };
+    }
+}
