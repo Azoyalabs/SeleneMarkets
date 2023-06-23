@@ -1,5 +1,5 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, Decimal, Deps, Storage, Uint128, Uint256};
+use cosmwasm_std::{Addr, Decimal, Storage, Uint128, Uint256};
 use serde::{Deserialize, Serialize};
 
 use crate::{state::LEVELS_DATA, ContractError};
@@ -21,6 +21,15 @@ pub enum OrderType {
 pub enum CurrencyInfo {
     Native { denom: String },
     Cw20 { address: String },
+}
+
+impl CurrencyInfo {
+    pub fn is_match(&self, target: &str) -> bool {
+        return match self {
+            CurrencyInfo::Cw20 { address } => address.eq(target),
+            CurrencyInfo::Native { denom } => denom.eq(target),
+        };
+    }
 }
 
 /// In the case of BTC-USD, BTC is the base currency and USD the quote currency
@@ -60,6 +69,23 @@ impl MarketInfo {
         }
 
         return Err(ContractError::MismatchDenomAndMarket {});
+    }
+
+    pub fn get_order_side_from_currency(&self, denom: &str) -> Result<OrderSide, ContractError> {
+        if self.quote_currency.is_match(denom) {
+            return Ok(OrderSide::Buy);
+        } else if self.base_currency.is_match(denom) {
+            return Ok(OrderSide::Sell);
+        } else {
+            return Err(ContractError::MismatchDenomAndMarket {});
+        }
+    }
+
+    pub fn get_currency_info_from_side(&self, order_side: OrderSide) -> CurrencyInfo {
+        return match order_side {
+            OrderSide::Buy => self.quote_currency.to_owned(),
+            OrderSide::Sell => self.base_currency.to_owned(),
+        };
     }
 
     pub fn get_currency_status_from_price(

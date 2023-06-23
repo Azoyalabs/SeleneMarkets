@@ -1,11 +1,4 @@
-use std::ops::Mul;
-
-use cosmwasm_std::{Decimal, Decimal256, Uint128, Uint256};
-
-use self::liquidity_consumer::ConsumptionResult;
-
 pub mod liquidity_consumer;
-pub mod liquidity_consumer2;
 pub mod liquidity_provider;
 pub mod liquidity_remover;
 

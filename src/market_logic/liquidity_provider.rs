@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use cosmwasm_std::{Addr, Decimal, DepsMut, Response, Uint128};
+use cosmwasm_std::{Addr, Decimal, Response, Storage, Uint128};
 
 use crate::{
     state::{LEVELS_DATA, LEVEL_ORDERS, MARKET_INFO},
@@ -10,7 +10,7 @@ use crate::{
 };
 
 pub fn process_limit_maker(
-    deps: DepsMut,
+    storage: &mut dyn Storage,
     sender: Addr,
     market_id: u64,
     order_price: Decimal,
@@ -25,7 +25,7 @@ pub fn process_limit_maker(
     };
 
     // access market info
-    let mut market_info = MARKET_INFO.load(deps.storage, market_id)?;
+    let mut market_info = MARKET_INFO.load(storage, market_id)?;
 
     let mut id_prev_level: Option<u64> = None;
     let mut id_current_level = match order_side {
@@ -48,7 +48,7 @@ pub fn process_limit_maker(
                         //let prev_market_data = LEVELS_DATA.load(deps.storage, val_id_prev_level)?;
 
                         LEVELS_DATA.update(
-                            deps.storage,
+                            storage,
                             val_id_prev_level,
                             |prev_market_data| -> Result<_, ContractError> {
                                 let mut prev_market_data = prev_market_data.unwrap();
@@ -69,8 +69,8 @@ pub fn process_limit_maker(
                             amount: order_quantity,
                         }];
 
-                        LEVELS_DATA.save(deps.storage, id, &level_data)?;
-                        LEVEL_ORDERS.save(deps.storage, id, &level_orders)?;
+                        LEVELS_DATA.save(storage, id, &level_data)?;
+                        LEVEL_ORDERS.save(storage, id, &level_orders)?;
 
                         break;
                     }
@@ -96,10 +96,10 @@ pub fn process_limit_maker(
                         }
                         //market_info.top_level_bid = Some(id);
 
-                        LEVELS_DATA.save(deps.storage, id, &level_data)?;
-                        LEVEL_ORDERS.save(deps.storage, id, &level_orders)?;
+                        LEVELS_DATA.save(storage, id, &level_data)?;
+                        LEVEL_ORDERS.save(storage, id, &level_orders)?;
 
-                        MARKET_INFO.save(deps.storage, market_id, &market_info)?;
+                        MARKET_INFO.save(storage, market_id, &market_info)?;
 
                         break;
                     }
@@ -109,7 +109,7 @@ pub fn process_limit_maker(
             // and insert or continue going down the list
             Some(val_id_current_level) => {
                 // load data current level
-                let curr_level_data = LEVELS_DATA.load(deps.storage, val_id_current_level)?;
+                let curr_level_data = LEVELS_DATA.load(storage, val_id_current_level)?;
 
                 // now we check where our order price stands compared to the current level
                 // if it's closer to the midprice than the level price, this means we need to insert a level
@@ -133,12 +133,12 @@ pub fn process_limit_maker(
                         amount: order_quantity,
                     }];
 
-                    LEVELS_DATA.save(deps.storage, id, &level_data)?;
-                    LEVEL_ORDERS.save(deps.storage, id, &level_orders)?;
+                    LEVELS_DATA.save(storage, id, &level_data)?;
+                    LEVEL_ORDERS.save(storage, id, &level_orders)?;
 
                     // closer to midprice than current level price, so insert between current level and previous
                     LEVELS_DATA.update(
-                        deps.storage,
+                        storage,
                         val_id_current_level,
                         |elem| -> Result<_, ContractError> {
                             let mut elem = elem.unwrap();
@@ -152,7 +152,7 @@ pub fn process_limit_maker(
                     match id_prev_level {
                         None => {
                             MARKET_INFO.update(
-                                deps.storage,
+                                storage,
                                 market_id,
                                 |elem| -> Result<_, ContractError> {
                                     let mut elem = elem.unwrap();
@@ -167,7 +167,7 @@ pub fn process_limit_maker(
                         }
                         Some(val_id_prev_level) => {
                             LEVELS_DATA.update(
-                                deps.storage,
+                                storage,
                                 val_id_prev_level,
                                 |elem| -> Result<_, ContractError> {
                                     let mut elem = elem.unwrap();
@@ -183,7 +183,7 @@ pub fn process_limit_maker(
                 } else if wrapped_comparison(curr_level_data.price, order_price, Ordering::Equal) {
                     // is a match on price, add to orders
                     LEVEL_ORDERS.update(
-                        deps.storage,
+                        storage,
                         val_id_current_level,
                         |elem| -> Result<_, ContractError> {
                             let mut elem = elem.unwrap();
@@ -201,9 +201,7 @@ pub fn process_limit_maker(
                     // price is further from midprice than the current level price
                     // continue going down the list
                     id_prev_level = id_current_level;
-                    id_current_level = LEVELS_DATA
-                        .load(deps.storage, val_id_current_level)?
-                        .id_next;
+                    id_current_level = LEVELS_DATA.load(storage, val_id_current_level)?.id_next;
                 }
             }
         }
@@ -214,7 +212,7 @@ pub fn process_limit_maker(
 
 #[cfg(test)]
 mod tests {
-    use cosmwasm_std::{testing::mock_dependencies, Addr, Decimal, MessageInfo, Uint128};
+    use cosmwasm_std::{testing::mock_dependencies, Addr, Decimal, Uint128};
 
     use crate::{
         contract_admin_execute::add_market,
@@ -245,13 +243,8 @@ mod tests {
             )
             .unwrap();
 
-            let info = MessageInfo {
-                sender: Addr::unchecked("user"),
-                funds: vec![],
-            };
-
             process_limit_maker(
-                deps.as_mut(),
+                deps.as_mut().storage,
                 Addr::unchecked("user"),
                 0,
                 Decimal::one(),
@@ -277,13 +270,8 @@ mod tests {
             )
             .unwrap();
 
-            let info = MessageInfo {
-                sender: Addr::unchecked("user"),
-                funds: vec![],
-            };
-
             process_limit_maker(
-                deps.as_mut(),
+                deps.as_mut().storage,
                 Addr::unchecked("user").clone(),
                 0,
                 Decimal::one(),
@@ -293,7 +281,7 @@ mod tests {
             .unwrap();
 
             process_limit_maker(
-                deps.as_mut(),
+                deps.as_mut().storage,
                 Addr::unchecked("user"),
                 0,
                 Decimal::one(),
@@ -320,15 +308,10 @@ mod tests {
             )
             .unwrap();
 
-            let info = MessageInfo {
-                sender: Addr::unchecked("user"),
-                funds: vec![],
-            };
-
             let top_price = Decimal::from_atomics(Uint128::new(1280), 3).unwrap();
 
             process_limit_maker(
-                deps.as_mut(),
+                deps.as_mut().storage,
                 Addr::unchecked("user").clone(),
                 0,
                 top_price.clone(),
@@ -338,7 +321,7 @@ mod tests {
             .unwrap();
 
             process_limit_maker(
-                deps.as_mut(),
+                deps.as_mut().storage,
                 Addr::unchecked("user").clone(),
                 0,
                 Decimal::one(),
@@ -375,15 +358,10 @@ mod tests {
             )
             .unwrap();
 
-            let info = MessageInfo {
-                sender: Addr::unchecked("user"),
-                funds: vec![],
-            };
-
             let top_price = Decimal::from_atomics(Uint128::new(1280), 3).unwrap();
 
             process_limit_maker(
-                deps.as_mut(),
+                deps.as_mut().storage,
                 Addr::unchecked("user").clone(),
                 0,
                 Decimal::one(),
@@ -393,7 +371,7 @@ mod tests {
             .unwrap();
 
             process_limit_maker(
-                deps.as_mut(),
+                deps.as_mut().storage,
                 Addr::unchecked("user").clone(),
                 0,
                 top_price.clone(),
@@ -429,17 +407,12 @@ mod tests {
             )
             .unwrap();
 
-            let info = MessageInfo {
-                sender: Addr::unchecked("user"),
-                funds: vec![],
-            };
-
             let top_price = Decimal::from_atomics(Uint128::new(1280), 3).unwrap();
             let mid_price = Decimal::one();
             let bottom_price = Decimal::from_atomics(Uint128::new(988), 3).unwrap();
 
             process_limit_maker(
-                deps.as_mut(),
+                deps.as_mut().storage,
                 Addr::unchecked("user").clone(),
                 0,
                 mid_price,
@@ -449,7 +422,7 @@ mod tests {
             .unwrap();
 
             process_limit_maker(
-                deps.as_mut(),
+                deps.as_mut().storage,
                 Addr::unchecked("user").clone(),
                 0,
                 top_price.clone(),
@@ -459,7 +432,7 @@ mod tests {
             .unwrap();
 
             process_limit_maker(
-                deps.as_mut(),
+                deps.as_mut().storage,
                 Addr::unchecked("user").clone(),
                 0,
                 bottom_price.clone(),
@@ -519,13 +492,8 @@ mod tests {
             )
             .unwrap();
 
-            let info = MessageInfo {
-                sender: Addr::unchecked("user"),
-                funds: vec![],
-            };
-
             process_limit_maker(
-                deps.as_mut(),
+                deps.as_mut().storage,
                 Addr::unchecked("user"),
                 0,
                 Decimal::one(),
@@ -551,13 +519,8 @@ mod tests {
             )
             .unwrap();
 
-            let info = MessageInfo {
-                sender: Addr::unchecked("user"),
-                funds: vec![],
-            };
-
             process_limit_maker(
-                deps.as_mut(),
+                deps.as_mut().storage,
                 Addr::unchecked("user").clone(),
                 0,
                 Decimal::one(),
@@ -567,7 +530,7 @@ mod tests {
             .unwrap();
 
             process_limit_maker(
-                deps.as_mut(),
+                deps.as_mut().storage,
                 Addr::unchecked("user"),
                 0,
                 Decimal::one(),
@@ -594,15 +557,10 @@ mod tests {
             )
             .unwrap();
 
-            let info = MessageInfo {
-                sender: Addr::unchecked("user"),
-                funds: vec![],
-            };
-
             let top_price = Decimal::from_atomics(Uint128::new(888), 3).unwrap();
 
             process_limit_maker(
-                deps.as_mut(),
+                deps.as_mut().storage,
                 Addr::unchecked("user").clone(),
                 0,
                 top_price.clone(),
@@ -612,7 +570,7 @@ mod tests {
             .unwrap();
 
             process_limit_maker(
-                deps.as_mut(),
+                deps.as_mut().storage,
                 Addr::unchecked("user").clone(),
                 0,
                 Decimal::one(),
@@ -649,15 +607,10 @@ mod tests {
             )
             .unwrap();
 
-            let info = MessageInfo {
-                sender: Addr::unchecked("user"),
-                funds: vec![],
-            };
-
             let top_price = Decimal::from_atomics(Uint128::new(888), 3).unwrap();
 
             process_limit_maker(
-                deps.as_mut(),
+                deps.as_mut().storage,
                 Addr::unchecked("user").clone(),
                 0,
                 Decimal::one(),
@@ -667,7 +620,7 @@ mod tests {
             .unwrap();
 
             process_limit_maker(
-                deps.as_mut(),
+                deps.as_mut().storage,
                 Addr::unchecked("user").clone(),
                 0,
                 top_price.clone(),
@@ -703,17 +656,12 @@ mod tests {
             )
             .unwrap();
 
-            let info = MessageInfo {
-                sender: Addr::unchecked("user"),
-                funds: vec![],
-            };
-
             let bottom_price = Decimal::from_atomics(Uint128::new(1280), 3).unwrap();
             let mid_price = Decimal::one();
             let top_price = Decimal::from_atomics(Uint128::new(988), 3).unwrap();
 
             process_limit_maker(
-                deps.as_mut(),
+                deps.as_mut().storage,
                 Addr::unchecked("user").clone(),
                 0,
                 mid_price,
@@ -723,7 +671,7 @@ mod tests {
             .unwrap();
 
             process_limit_maker(
-                deps.as_mut(),
+                deps.as_mut().storage,
                 Addr::unchecked("user").clone(),
                 0,
                 top_price.clone(),
@@ -733,7 +681,7 @@ mod tests {
             .unwrap();
 
             process_limit_maker(
-                deps.as_mut(),
+                deps.as_mut().storage,
                 Addr::unchecked("user").clone(),
                 0,
                 bottom_price.clone(),

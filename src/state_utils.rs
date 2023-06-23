@@ -89,7 +89,7 @@ pub fn remove_level(
 
 #[cfg(test)]
 mod tests {
-    use cosmwasm_std::{testing::mock_dependencies, Addr, Decimal, MessageInfo, Uint128};
+    use cosmwasm_std::{testing::mock_dependencies, Addr, Decimal, Uint128};
 
     use crate::{
         contract_admin_execute::add_market,
@@ -119,13 +119,8 @@ mod tests {
         )
         .unwrap();
 
-        let info = MessageInfo {
-            sender: Addr::unchecked("user"),
-            funds: vec![],
-        };
-
         process_limit_maker(
-            deps.as_mut(),
+            deps.as_mut().storage,
             Addr::unchecked("user").clone(),
             0,
             Decimal::one(),
@@ -164,13 +159,8 @@ mod tests {
         )
         .unwrap();
 
-        let info = MessageInfo {
-            sender: Addr::unchecked("user"),
-            funds: vec![],
-        };
-
         process_limit_maker(
-            deps.as_mut(),
+            deps.as_mut().storage,
             Addr::unchecked("user").clone(),
             0,
             Decimal::one(),
@@ -181,7 +171,7 @@ mod tests {
 
         let top_price = Decimal::from_atomics(Uint128::new(1128), 3).unwrap();
         process_limit_maker(
-            deps.as_mut(),
+            deps.as_mut().storage,
             Addr::unchecked("user").clone(),
             0,
             top_price,
@@ -227,13 +217,8 @@ mod tests {
         )
         .unwrap();
 
-        let info = MessageInfo {
-            sender: Addr::unchecked("user"),
-            funds: vec![],
-        };
-
         process_limit_maker(
-            deps.as_mut(),
+            deps.as_mut().storage,
             Addr::unchecked("user").clone(),
             0,
             Decimal::one(),
@@ -244,7 +229,7 @@ mod tests {
 
         let top_price = Decimal::from_atomics(Uint128::new(1128), 3).unwrap();
         process_limit_maker(
-            deps.as_mut(),
+            deps.as_mut().storage,
             Addr::unchecked("user").clone(),
             0,
             top_price,
@@ -293,14 +278,9 @@ mod tests {
         )
         .unwrap();
 
-        let info = MessageInfo {
-            sender: Addr::unchecked("user"),
-            funds: vec![],
-        };
-
         let middle_price = Decimal::one();
         process_limit_maker(
-            deps.as_mut(),
+            deps.as_mut().storage,
             Addr::unchecked("user").clone(),
             0,
             middle_price,
@@ -311,7 +291,7 @@ mod tests {
 
         let top_price = Decimal::from_atomics(Uint128::new(1128), 3).unwrap();
         process_limit_maker(
-            deps.as_mut(),
+            deps.as_mut().storage,
             Addr::unchecked("user").clone(),
             0,
             top_price,
@@ -322,7 +302,7 @@ mod tests {
 
         let bottom_price = Decimal::from_atomics(Uint128::new(976), 3).unwrap();
         process_limit_maker(
-            deps.as_mut(),
+            deps.as_mut().storage,
             Addr::unchecked("user").clone(),
             0,
             bottom_price,
@@ -398,14 +378,9 @@ mod tests {
         )
         .unwrap();
 
-        let info = MessageInfo {
-            sender: Addr::unchecked("user"),
-            funds: vec![],
-        };
-
         let middle_price = Decimal::one();
         process_limit_maker(
-            deps.as_mut(),
+            deps.as_mut().storage,
             Addr::unchecked("user").clone(),
             0,
             middle_price,
@@ -416,7 +391,7 @@ mod tests {
 
         let top_price = Decimal::from_atomics(Uint128::new(1128), 3).unwrap();
         process_limit_maker(
-            deps.as_mut(),
+            deps.as_mut().storage,
             Addr::unchecked("user").clone(),
             0,
             top_price,
@@ -427,7 +402,7 @@ mod tests {
 
         let bottom_price = Decimal::from_atomics(Uint128::new(976), 3).unwrap();
         process_limit_maker(
-            deps.as_mut(),
+            deps.as_mut().storage,
             Addr::unchecked("user").clone(),
             0,
             bottom_price,
@@ -503,14 +478,9 @@ mod tests {
         )
         .unwrap();
 
-        let info = MessageInfo {
-            sender: Addr::unchecked("user"),
-            funds: vec![],
-        };
-
         let middle_price = Decimal::one();
         process_limit_maker(
-            deps.as_mut(),
+            deps.as_mut().storage,
             Addr::unchecked("user").clone(),
             0,
             middle_price,
@@ -521,7 +491,7 @@ mod tests {
 
         let top_price = Decimal::from_atomics(Uint128::new(1128), 3).unwrap();
         process_limit_maker(
-            deps.as_mut(),
+            deps.as_mut().storage,
             Addr::unchecked("user").clone(),
             0,
             top_price,
@@ -532,7 +502,7 @@ mod tests {
 
         let bottom_price = Decimal::from_atomics(Uint128::new(976), 3).unwrap();
         process_limit_maker(
-            deps.as_mut(),
+            deps.as_mut().storage,
             Addr::unchecked("user").clone(),
             0,
             bottom_price,

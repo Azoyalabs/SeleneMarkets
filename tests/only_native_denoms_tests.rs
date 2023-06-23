@@ -281,8 +281,6 @@ mod tests {
                 //order_side: OrderSide::Buy,
             };
 
-            return;
-
             let _res = router.execute_contract(
                 user_1.clone(),
                 market_addr.clone(),

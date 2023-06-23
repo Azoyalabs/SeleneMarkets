@@ -1,15 +1,11 @@
 use cosmwasm_std::{from_binary, Addr, Decimal, DepsMut, Env, MessageInfo, Response, Uint128};
 
 use crate::{
-    market_logic::{liquidity_provider, liquidity_remover},
+    market_logic::{liquidity_consumer, liquidity_provider, liquidity_remover},
     msg::{ExecuteMsg, SeleneCw20Msg},
-    state::{LEVELS_DATA, LEVEL_ORDERS, MARKET_INFO, USER_ORDERS},
-    structs::{
-        CurrencyInfo, CurrencyStatus, LevelData, LevelOrder, MarketInfo, OrderSide, UserOrderRecord,
-    },
-    utils::{
-        check_only_one_fund, create_funds_message, create_id_level, create_id_level_no_status,
-    },
+    state::{LEVELS_DATA, MARKET_INFO, USER_ORDERS},
+    structs::{CurrencyStatus, OrderSide, UserOrderRecord},
+    utils::{check_only_one_fund, create_funds_message},
     ContractError,
 };
 
@@ -32,14 +28,20 @@ pub fn route_execute(
                     market_id,
                     price,
                 ),
-                SeleneCw20Msg::MarketOrder { market_id } => panic!("not implemented"),
+                SeleneCw20Msg::MarketOrder { market_id } => execute_market_order_cw20(
+                    deps,
+                    sender,
+                    info.sender.to_string(),
+                    receive_msg.amount,
+                    market_id,
+                ),
             }
         }
         ExecuteMsg::LimitOrder {
             market_id,
             price,
             //order_side,
-        } => execute_limit_order2(deps, info, market_id, price),
+        } => execute_limit_order(deps, info, market_id, price),
         ExecuteMsg::RemoveLimitOrder { market_id, price } => {
             execute_remove_limit_order(deps, info, market_id, price)
         }
@@ -90,8 +92,6 @@ fn execute_remove_limit_order(
         }
     };
 
-    //let transfer_msg = create_funds_message(amount, currency_info, beneficiary)
-
     return Ok(Response::new().add_message(transfer_msg));
 }
 
@@ -103,10 +103,6 @@ fn execute_limit_order_cw20(
     market_id: u64,
     order_price: Decimal,
 ) -> Result<Response, ContractError> {
-    // validate funds
-    //let order_value = check_only_one_fund(&info)?;
-    //let order_quantity = order_value.amount;
-
     // load market info
     let market_info = match MARKET_INFO.load(deps.storage, market_id) {
         Err(_) => return Err(ContractError::UnknownMarketId { id: market_id }),
@@ -143,27 +139,13 @@ fn execute_limit_order_cw20(
                     )?;
 
                     liquidity_provider::process_limit_maker(
-                        deps,
+                        deps.storage,
                         sender,
                         market_id,
                         order_price,
                         order_quantity,
                         OrderSide::Sell,
                     )?;
-
-                    /*
-                    match market_info.top_level_ask {
-                        None => {
-                            // no asks also, so maker
-                            liquidity_provider::process_limit_maker(deps, info, market_id, order_price, order_quantity, OrderSide::Sell)?;
-                        },
-                        Some(val_id_top_level_ask) => {
-                            // there are asks, need to compare prices
-                            let top_ask_level_data = LEVELS_DATA.load(deps.storage, val_id_top_level_ask)?;
-
-                        }
-                    }
-                    */
                 }
                 // bids registered, compare to price
                 Some(val_id_top_level_bid) => {
@@ -188,7 +170,7 @@ fn execute_limit_order_cw20(
                         )?;
 
                         liquidity_provider::process_limit_maker(
-                            deps,
+                            deps.storage,
                             sender,
                             market_id,
                             order_price,
@@ -197,7 +179,14 @@ fn execute_limit_order_cw20(
                         )?;
                     } else {
                         // limit taker
-                        panic!("Not implemented");
+                        liquidity_consumer::process_liquidity_taker(
+                            deps,
+                            sender,
+                            market_id,
+                            Some(order_price),
+                            order_quantity,
+                            OrderSide::Sell,
+                        )?;
                     }
                 }
             }
@@ -225,7 +214,7 @@ fn execute_limit_order_cw20(
                     )?;
 
                     liquidity_provider::process_limit_maker(
-                        deps,
+                        deps.storage,
                         sender,
                         market_id,
                         order_price,
@@ -256,7 +245,7 @@ fn execute_limit_order_cw20(
                         )?;
 
                         liquidity_provider::process_limit_maker(
-                            deps,
+                            deps.storage,
                             sender,
                             market_id,
                             order_price,
@@ -265,7 +254,14 @@ fn execute_limit_order_cw20(
                         )?;
                     } else {
                         // limit taker
-                        panic!("Not implemented");
+                        liquidity_consumer::process_liquidity_taker(
+                            deps,
+                            sender,
+                            market_id,
+                            Some(order_price),
+                            order_quantity,
+                            OrderSide::Buy,
+                        )?;
                     }
                 }
             }
@@ -275,7 +271,7 @@ fn execute_limit_order_cw20(
     return Ok(Response::new());
 }
 
-fn execute_limit_order2(
+fn execute_limit_order(
     deps: DepsMut,
     info: MessageInfo,
     market_id: u64,
@@ -321,7 +317,7 @@ fn execute_limit_order2(
                     )?;
 
                     liquidity_provider::process_limit_maker(
-                        deps,
+                        deps.storage,
                         info.sender,
                         market_id,
                         order_price,
@@ -366,7 +362,7 @@ fn execute_limit_order2(
                         )?;
 
                         liquidity_provider::process_limit_maker(
-                            deps,
+                            deps.storage,
                             info.sender,
                             market_id,
                             order_price,
@@ -375,7 +371,14 @@ fn execute_limit_order2(
                         )?;
                     } else {
                         // limit taker
-                        panic!("limit taker orders Not implemented");
+                        liquidity_consumer::process_liquidity_taker(
+                            deps,
+                            info.sender,
+                            market_id,
+                            Some(order_price),
+                            order_quantity,
+                            OrderSide::Sell,
+                        )?;
                     }
                 }
             }
@@ -403,7 +406,7 @@ fn execute_limit_order2(
                     )?;
 
                     liquidity_provider::process_limit_maker(
-                        deps,
+                        deps.storage,
                         info.sender,
                         market_id,
                         order_price,
@@ -434,7 +437,7 @@ fn execute_limit_order2(
                         )?;
 
                         liquidity_provider::process_limit_maker(
-                            deps,
+                            deps.storage,
                             info.sender,
                             market_id,
                             order_price,
@@ -443,7 +446,14 @@ fn execute_limit_order2(
                         )?;
                     } else {
                         // limit taker
-                        panic!("Not implemented");
+                        liquidity_consumer::process_liquidity_taker(
+                            deps,
+                            info.sender,
+                            market_id,
+                            Some(order_price),
+                            order_quantity,
+                            OrderSide::Buy,
+                        )?;
                     }
                 }
             }
@@ -453,145 +463,51 @@ fn execute_limit_order2(
     return Ok(Response::new());
 }
 
-/*
-fn process_limit_maker(
+fn execute_market_order(
     deps: DepsMut,
     info: MessageInfo,
     market_id: u64,
-    order_price: Decimal,
-    order_quantity: Uint128,
-    order_side: OrderSide,
 ) -> Result<Response, ContractError> {
-    // need to find level at which to put it
-    // for now we'll just read top on selected side
-    // should be done on higher level but whatev, is dev time
+    // validate funds
+    let order_value = check_only_one_fund(&info)?;
+    let order_quantity = order_value.amount;
 
-    // load market info
-    let mut market_info = match MARKET_INFO.load(deps.storage, market_id) {
-        Err(_) => return Err(ContractError::UnknownMarketId { id: market_id }),
-        Ok(market_info) => market_info,
-    };
+    let market_info = MARKET_INFO.load(deps.storage, market_id)?;
+    let order_side = market_info.get_order_side_from_currency(&order_value.denom)?;
 
-    match order_side {
-        OrderSide::Buy => match market_info.top_level_bid {
-            None => {
-                let level_data = LevelData {
-                    id_next: None,
-                    id_previous: None,
-                    price: order_price,
-                };
+    liquidity_consumer::process_liquidity_taker(
+        deps,
+        info.sender,
+        market_id,
+        None,
+        order_quantity,
+        order_side,
+    )?;
 
-                let level_orders = vec![LevelOrder {
-                    user: info.sender,
-                    amount: order_quantity,
-                }];
-
-                let id = create_id_level_no_status(&market_info, order_price);
-                market_info.top_level_bid = Some(id);
-
-                LEVELS_DATA.save(deps.storage, id, &level_data)?;
-                LEVEL_ORDERS.save(deps.storage, id, &level_orders)?;
-
-                MARKET_INFO.save(deps.storage, market_id, &market_info)?;
-            }
-            Some(top_level_id) => {
-                let mut top_level_data = LEVELS_DATA.load(deps.storage, top_level_id)?;
-
-                if top_level_data.price < order_price {
-                    // is new top level
-                    let id = create_id_level_no_status(&market_info, order_price);
-                    market_info.top_level_bid = Some(id);
-
-                    let level_data = LevelData {
-                        id_next: None,
-                        id_previous: None,
-                        price: order_price,
-                    };
-
-                    let level_orders = vec![LevelOrder {
-                        user: info.sender,
-                        amount: order_quantity,
-                    }];
-
-                    top_level_data.id_previous = Some(id);
-
-                    LEVELS_DATA.save(deps.storage, id, &level_data)?;
-                    LEVEL_ORDERS.save(deps.storage, id, &level_orders)?;
-
-                    MARKET_INFO.save(deps.storage, market_id, &market_info)?;
-                } else if top_level_data.price == order_price {
-                    LEVEL_ORDERS.update(
-                        deps.storage,
-                        top_level_id,
-                        |level_orders| -> Result<_, ContractError> {
-                            let mut level_orders = level_orders.unwrap();
-                            level_orders.push(LevelOrder {
-                                user: info.sender,
-                                amount: order_quantity,
-                            });
-
-                            return Ok(level_orders);
-                        },
-                    )?;
-                } else {
-                    // should really put everything in a loop, here I'm repeating code
-                    match top_level_data.id_next {
-                        None => {
-                            // none after, so can set new level
-                            let id = create_id_level_no_status(&market_info, order_price);
-
-                            let level_data = LevelData {
-                                id_next: None,
-                                id_previous: None,
-                                price: order_price,
-                            };
-
-                            let level_orders = vec![LevelOrder {
-                                user: info.sender,
-                                amount: order_quantity,
-                            }];
-
-                            //market_info.top_level_bid = Some(id);
-
-                            LEVELS_DATA.save(deps.storage, id, &level_data)?;
-                            LEVEL_ORDERS.save(deps.storage, id, &level_orders)?;
-
-                            // and update top level
-                            top_level_data.id_next = Some(id);
-                            LEVELS_DATA.save(deps.storage, top_level_id, &level_data)?;
-
-                            MARKET_INFO.save(deps.storage, market_id, &market_info)?;
-                        }
-                        Some(id_next) => {
-                            // there is a next level, compare to it
-                            let curr_level_data = LEVELS_DATA.load(deps.storage, id_next)?;
-
-                            //if curr_level_data.price
-                        }
-                    }
-
-                    let mut curr_level_data = top_level_data;
-                    let mut curr_level_id = top_level_id;
-
-                    loop {}
-                }
-            }
-        },
-        OrderSide::Sell => {}
-    }
-
+    panic!("not implemented");
     return Ok(Response::new());
 }
-*/
 
-fn process_limit_taker(deps: DepsMut, info: MessageInfo, market_id: u64, order_price: Decimal) {}
-
-fn add_maker_order(deps: DepsMut, info: MessageInfo, market_id: u64, order_price: Decimal) {}
-
-fn execute_market_order(
-    _deps: DepsMut,
-    _info: MessageInfo,
+fn execute_market_order_cw20(
+    deps: DepsMut,
+    sender: Addr,
+    currency: String,
+    order_quantity: Uint128,
     market_id: u64,
 ) -> Result<Response, ContractError> {
+    let market_info = MARKET_INFO.load(deps.storage, market_id)?;
+    let order_side = market_info.get_order_side_from_currency(&currency)?;
+
+    liquidity_consumer::process_liquidity_taker(
+        deps,
+        sender,
+        market_id,
+        None,
+        order_quantity,
+        order_side,
+    )?;
+
+    panic!("not implemented");
+
     return Ok(Response::new());
 }

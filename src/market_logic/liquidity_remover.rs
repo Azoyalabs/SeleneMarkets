@@ -76,7 +76,7 @@ mod tests {
             };
 
             process_limit_maker(
-                deps.as_mut(),
+                deps.as_mut().storage,
                 Addr::unchecked("user").clone(),
                 0,
                 Decimal::one(),
@@ -129,7 +129,7 @@ mod tests {
             };
 
             process_limit_maker(
-                deps.as_mut(),
+                deps.as_mut().storage,
                 Addr::unchecked("user").clone(),
                 0,
                 Decimal::one(),

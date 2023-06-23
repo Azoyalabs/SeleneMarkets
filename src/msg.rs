@@ -2,7 +2,7 @@ use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Addr, Decimal};
 use cw20::Cw20ReceiveMsg;
 
-use crate::structs::{BookLevel, CurrencyInfo, OrderSide, SingleMarketInfo, UserOrderRecord};
+use crate::structs::{BookLevel, CurrencyInfo, SingleMarketInfo, UserOrderRecord};
 
 #[cw_serde]
 pub struct InstantiateMsg {}
@@ -55,7 +55,7 @@ pub enum ExecuteMsg {
 }
 
 #[cw_serde]
-pub enum MigrateMsg {}
+pub struct MigrateMsg {}
 
 #[cw_serde]
 #[derive(QueryResponses)]
