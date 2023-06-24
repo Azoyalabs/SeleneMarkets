@@ -12,7 +12,6 @@ pub enum AdminExecuteMsg {
     UpdateAdmin {
         new_admin: String,
     },
-    //AddMarket { },
     AddMarket {
         base_currency: CurrencyInfo,
         quote_currency: CurrencyInfo,
@@ -22,15 +21,8 @@ pub enum AdminExecuteMsg {
 /// messages to be used in a cw20::send message
 #[cw_serde]
 pub enum SeleneCw20Msg {
-    LimitOrder {
-        market_id: u64,
-        price: Decimal,
-        //order_side: OrderSide,
-    },
-    MarketOrder {
-        market_id: u64,
-        //order_side: OrderSide,
-    },
+    LimitOrder { market_id: u64, price: Decimal },
+    MarketOrder { market_id: u64 },
 }
 
 #[cw_serde]
@@ -40,7 +32,6 @@ pub enum ExecuteMsg {
     LimitOrder {
         market_id: u64,
         price: Decimal,
-        //order_side: OrderSide,
     },
     /// market order for a native coin
     MarketOrder {
