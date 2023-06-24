@@ -1,4 +1,6 @@
-use cosmwasm_std::{from_binary, Addr, Decimal, DepsMut, Env, MessageInfo, Response, Uint128};
+use cosmwasm_std::{
+    from_binary, Addr, CosmosMsg, Decimal, DepsMut, Env, MessageInfo, Response, Uint128,
+};
 
 use crate::{
     market_logic::{liquidity_consumer, liquidity_provider, liquidity_remover},
@@ -112,6 +114,8 @@ fn execute_limit_order_cw20(
     // determine whether this is a base currency or a quote currency
     let currency_status = market_info.get_currency_status(&currency)?;
 
+    let mut out_msgs: Vec<CosmosMsg> = vec![];
+
     // then determine if it's a buy or a sell depending on currency_status
     // and if taker or maker
     match currency_status {
@@ -179,7 +183,7 @@ fn execute_limit_order_cw20(
                         )?;
                     } else {
                         // limit taker
-                        liquidity_consumer::process_liquidity_taker(
+                        out_msgs = liquidity_consumer::process_liquidity_taker(
                             deps,
                             sender,
                             market_id,
@@ -254,7 +258,7 @@ fn execute_limit_order_cw20(
                         )?;
                     } else {
                         // limit taker
-                        liquidity_consumer::process_liquidity_taker(
+                        out_msgs = liquidity_consumer::process_liquidity_taker(
                             deps,
                             sender,
                             market_id,
@@ -268,7 +272,7 @@ fn execute_limit_order_cw20(
         }
     }
 
-    return Ok(Response::new());
+    return Ok(Response::new().add_messages(out_msgs));
 }
 
 fn execute_limit_order(
@@ -289,6 +293,8 @@ fn execute_limit_order(
 
     // determine whether this is a base currency or a quote currency
     let currency_status = market_info.get_currency_status(&order_value.denom)?;
+
+    let mut out_msgs: Vec<CosmosMsg> = vec![];
 
     // then determine if it's a buy or a sell depending on currency_status
     // and if taker or maker
@@ -371,7 +377,7 @@ fn execute_limit_order(
                         )?;
                     } else {
                         // limit taker
-                        liquidity_consumer::process_liquidity_taker(
+                        out_msgs = liquidity_consumer::process_liquidity_taker(
                             deps,
                             info.sender,
                             market_id,
@@ -446,7 +452,7 @@ fn execute_limit_order(
                         )?;
                     } else {
                         // limit taker
-                        liquidity_consumer::process_liquidity_taker(
+                        out_msgs = liquidity_consumer::process_liquidity_taker(
                             deps,
                             info.sender,
                             market_id,
@@ -460,7 +466,7 @@ fn execute_limit_order(
         }
     }
 
-    return Ok(Response::new());
+    return Ok(Response::new().add_messages(out_msgs));
 }
 
 fn execute_market_order(
@@ -475,7 +481,7 @@ fn execute_market_order(
     let market_info = MARKET_INFO.load(deps.storage, market_id)?;
     let order_side = market_info.get_order_side_from_currency(&order_value.denom)?;
 
-    liquidity_consumer::process_liquidity_taker(
+    let msgs = liquidity_consumer::process_liquidity_taker(
         deps,
         info.sender,
         market_id,
@@ -484,8 +490,7 @@ fn execute_market_order(
         order_side,
     )?;
 
-    panic!("not implemented");
-    return Ok(Response::new());
+    return Ok(Response::new().add_messages(msgs));
 }
 
 fn execute_market_order_cw20(
@@ -498,7 +503,7 @@ fn execute_market_order_cw20(
     let market_info = MARKET_INFO.load(deps.storage, market_id)?;
     let order_side = market_info.get_order_side_from_currency(&currency)?;
 
-    liquidity_consumer::process_liquidity_taker(
+    let msgs = liquidity_consumer::process_liquidity_taker(
         deps,
         sender,
         market_id,
@@ -507,7 +512,5 @@ fn execute_market_order_cw20(
         order_side,
     )?;
 
-    panic!("not implemented");
-
-    return Ok(Response::new());
+    return Ok(Response::new().add_messages(msgs));
 }

@@ -3,6 +3,7 @@ use std::cmp::Ordering;
 use cosmwasm_std::{Addr, CosmosMsg, Decimal, DepsMut, Uint128};
 
 use crate::{
+    market_logic::liquidity_provider,
     state::{LEVELS_DATA, LEVEL_ORDERS, MARKET_INFO, USER_ORDERS},
     state_utils,
     structs::{LevelOrder, OrderSide},
@@ -12,90 +13,7 @@ use crate::{
 
 use crate::structs::LevelOrders;
 
-use super::liquidity_provider;
-
-#[derive(Debug)]
-pub struct ConsumptionResult {
-    /// has the level been fully consumed
-    pub is_fully_consumed: bool,
-    /// from the initial order quantity, how much is left to consume
-    pub remaining_to_consume: Uint128,
-    /// records that have been consumed, partially or fully
-    pub bin_records_consumed: Vec<LevelOrder>,
-}
-
-pub struct ConsumedOrdersLevel {
-    pub price: Decimal,
-    pub orders: Vec<LevelOrder>,
-}
-
-impl ConsumedOrdersLevel {
-    pub fn from_consumption_result(price: Decimal, rslt: ConsumptionResult) -> Self {
-        return ConsumedOrdersLevel {
-            price: price,
-            orders: rslt.bin_records_consumed,
-        };
-    }
-}
-
-impl Default for ConsumptionResult {
-    fn default() -> Self {
-        return ConsumptionResult {
-            bin_records_consumed: vec![],
-            is_fully_consumed: false,
-            remaining_to_consume: Uint128::zero(),
-        };
-    }
-}
-
-impl ConsumptionResult {
-    pub fn new(to_consume: Uint128) -> Self {
-        return ConsumptionResult {
-            bin_records_consumed: vec![],
-            is_fully_consumed: false,
-            remaining_to_consume: to_consume,
-        };
-    }
-}
-
-pub trait LiquidityConsumer {
-    fn consume(&mut self, price: Decimal, quantity: Uint128) -> ConsumptionResult;
-}
-
-impl LiquidityConsumer for LevelOrders {
-    fn consume(&mut self, price: Decimal, quantity: Uint128) -> ConsumptionResult {
-        let mut rslt = ConsumptionResult::new(quantity);
-        loop {
-            if let Some(mut curr) = self.pop() {
-                if rslt.remaining_to_consume > curr.amount {
-                    rslt.remaining_to_consume -= curr.amount;
-                    rslt.bin_records_consumed.push(curr);
-                } else {
-                    rslt.bin_records_consumed.push(LevelOrder {
-                        user: curr.user.clone(),
-                        amount: rslt.remaining_to_consume,
-                    });
-                    curr.amount -= rslt.remaining_to_consume;
-                    rslt.remaining_to_consume = Uint128::zero();
-
-                    if !curr.amount.is_zero() {
-                        self.push(curr);
-                    }
-                    break;
-                }
-            } else {
-                rslt.is_fully_consumed = true;
-                break;
-            }
-        }
-
-        if self.len() == 0 {
-            rslt.is_fully_consumed = true;
-        }
-
-        return rslt;
-    }
-}
+use super::structs::{ConsumedOrdersLevel, LiquidityConsumer};
 
 pub fn process_liquidity_taker(
     deps: DepsMut,
