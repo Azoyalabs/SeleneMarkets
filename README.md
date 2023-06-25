@@ -20,10 +20,10 @@ The market is HEUR-HUSD, which stands for Hackaton EUR and Hackaton USD.
 
 ## Using the CLI  
 
-1- Clone this repository 
-2- Install dependencies (npm install)
-3- Build (npm run build)
-4- Launch the CLI (npm run start)
+1- Clone this repository   
+2- Install dependencies (npm install)  
+3- Build (npm run build)  
+4- Launch the CLI (npm run start)   
 
 When running the CLI you will be asked to choose a user.  
 
