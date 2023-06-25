@@ -5,14 +5,42 @@ This repository contains the code for Selene, a decentralized exchange (DEX) sma
 
 This is a submission for a hackaton and should not be considered production-ready. 
 
-### IMPORTANT: we provide a CLI in the "scripts" branch to easily interact with the deployed contract https://github.com/Azoyalabs/SeleneMarkets/tree/script  
+### IMPORTANT: See the following "Using the CLI" section to start using the already deployed contract on testnet  
 
 
-## Smart Contract Address
+## Testnet Setup 
 The deployed smart contract can be found at the following address on the Archways testnet (constantine-3):
 ```
 archway19xpqgjr97ts34cgzzgh9pyprke8z5f94xv20wjgse5wg8uvt09asmkny8r
-```
+```  
+
+It has been preset with a market for trading with 2 CW20 tokens.  
+The market is HEUR-HUSD, which stands for Hackaton EUR and Hackaton USD.  
+
+
+## Using the CLI  
+
+1- Clone this repository 
+2- Install dependencies (npm install)
+3- Build (npm run build)
+4- Launch the CLI (npm run start)
+
+When running the CLI you will be asked to choose a user.  
+
+![Choose User on start](media/cli_choose_user.PNG)
+
+Then you will be able to perform a variety of operations: 
+- Get your current orders on the market  
+- Get the top orders on the market 
+- Send a limit order  
+- Cancel an existing order 
+
+![Multiple actions are available from the CLI](media/cli_choose_action.PNG)
+
+Here's an example response from querying the user bids  
+
+![Response user bids](media/get_bids.PNG)
+
 
 ## Interacting with the contract
 
