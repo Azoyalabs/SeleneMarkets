@@ -117,7 +117,7 @@ Here are some examples of how to interact with the Archways DEX smart contract:
 
 1. Placing a limit order:
 ```rust
-let msg = SeleneCw20Msg::LimitOrder {
+let msg = ExecuteMsg::LimitOrder {
     market_id: 1,
     price: Decimal::from_ratio(100, 1),
 };
