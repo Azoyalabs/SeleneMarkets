@@ -11,7 +11,7 @@ This is a submission for a hackaton and should not be considered production-read
 ## Testnet Setup 
 The deployed smart contract can be found at the following address on the Archways testnet (constantine-3):
 ```
-archway19xpqgjr97ts34cgzzgh9pyprke8z5f94xv20wjgse5wg8uvt09asmkny8r
+archway1vwt0qw4jpc2tadvlju4wcv4zdsex50ytz9hwh6qetkcrfmkva8vsjul9xt
 ```  
 
 It has been preset with a market for trading with 2 CW20 tokens.  
