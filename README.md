@@ -5,7 +5,10 @@ This repository contains the code for Selene, a decentralized exchange (DEX) sma
 
 This is a submission for a hackaton and should not be considered production-ready. 
 
-### IMPORTANT: See the following "Using the CLI" section to start using the already deployed contract on testnet  
+A CLI is available for ease of interaction, see the "Using the CLI" section.  
+
+### IMPORTANT: Due to logic issues, taker orders are not available (market orders, and limit that would match an available order)  
+
 
 
 ## Testnet Setup 
@@ -16,6 +19,7 @@ archway19z2f7du39v9q5m427s0fu5344u3qwyyxeqaknhhu0ntwankqz8gqapezf0
 
 It has been preset with a market for trading with 2 CW20 tokens.  
 The market is HEUR-HUSD, which stands for Hackaton EUR and Hackaton USD.  
+The CLI contains a faucet for these 2 markets.  
 
 
 ## Using the CLI  
