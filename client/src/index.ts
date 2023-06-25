@@ -8,7 +8,7 @@ import {
 } from "./constants.js";
 import { makeWallet } from "./utils/makeWallet.js";
 import { queryTokenBalances } from "./actions/balance.js";
-import { NewOrderCreationPrompt, OrderCreationPrompt } from "./utils/promptOrder.js";
+import { NewMarketOrderCreationPrompt, NewOrderCreationPrompt, OrderCreationPrompt } from "./utils/promptOrder.js";
 import { ACTION, SeleneCw20Msg } from "./types.js";
 import { transferCW20WithMessage } from "./utils/transferCW20.js";
 import { UserOrderRecord } from "./contract/Selene.types.js";
@@ -50,6 +50,14 @@ async function main() {
       {
         label: "Place a buy order (Buy HEUR with HUSD)",
         value: "set-buy",
+      },
+      {
+        label: "Send a market sell order (Sell HEUR for HUSD)",
+        value: "market-sell",
+      },
+      {
+        label: "Send a market buy order (Buy HEUR with HUSD)",
+        value: "market-buy",
       },
       {
         label: "Remove an order",
@@ -134,6 +142,78 @@ async function main() {
             buyPrompt.amount,
             buyPrompt.token,
             limitSellMsg,
+            wallet.cosmwasmSigner
+          );
+          s.stop(
+            `transaction successful: ${EXPLORER_TX_LINK(
+              buyOrderTx.transactionHash
+            )}`
+          );
+        } catch (error) {
+          console.error(error);
+        }
+      } else {
+        p.outro("Order cancelled");
+      }
+      break;
+
+    case "market-buy":
+      const buyMarketPrompt = await NewMarketOrderCreationPrompt(balances, "buy");
+      if (buyMarketPrompt) {
+        const marketBuyMsg: SeleneCw20Msg = {
+          market_order: {
+            market_id: MARKET_ID,
+          },
+        };
+
+        try {
+          const s = p.spinner();
+          s.start(
+            `Sending market buy order: ${red(
+              `${buyMarketPrompt.amount} ${buyMarketPrompt.token}`
+            )}`
+          );
+          const buyOrderTx = await transferCW20WithMessage(
+            wallet.address,
+            buyMarketPrompt.amount,
+            buyMarketPrompt.token,
+            marketBuyMsg,
+            wallet.cosmwasmSigner
+          );
+          s.stop(
+            `transaction successful: ${EXPLORER_TX_LINK(
+              buyOrderTx.transactionHash
+            )}`
+          );
+        } catch (error) {
+          console.error(error);
+        }
+      } else {
+        p.outro("Order cancelled");
+      }
+      break;
+
+    case "market-sell":
+      const sellMarketPrompt = await NewMarketOrderCreationPrompt(balances, "sell");
+      if (sellMarketPrompt) {
+        const marketSellMsg: SeleneCw20Msg = {
+          market_order: {
+            market_id: MARKET_ID,
+          },
+        };
+
+        try {
+          const s = p.spinner();
+          s.start(
+            `Sending market sell order: ${red(
+              `${sellMarketPrompt.amount} ${sellMarketPrompt.token}`
+            )}`
+          );
+          const buyOrderTx = await transferCW20WithMessage(
+            wallet.address,
+            sellMarketPrompt.amount,
+            sellMarketPrompt.token,
+            marketSellMsg,
             wallet.cosmwasmSigner
           );
           s.stop(

@@ -153,3 +153,58 @@ export async function NewOrderCreationPrompt(
     return null;
   }
 }
+
+
+export async function NewMarketOrderCreationPrompt(
+  supportedTokens: FullBalance[],
+  side: "buy" | "sell"
+) {
+  let tokenToSend: FullBalance;
+  let tokenAgainst: FullBalance;
+  if (side === "buy") {
+    tokenToSend = supportedTokens.find((t) => t.symbol === "HUSD")!;
+    tokenAgainst = supportedTokens.find((t) => t.symbol === "HEUR")!;
+  } else {
+    tokenToSend = supportedTokens.find((t) => t.symbol === "HEUR")!;
+    tokenAgainst = supportedTokens.find((t) => t.symbol === "HUSD")!;
+  }
+
+  const amount = (await p.text({
+    message: `How Many ${tokenToSend.symbol} do you want to exchange?`,
+    validate: (value) => {
+      const regex = new RegExp(/^\d+(\.\d{1,2})?$/);
+      //const regex = new RegExp("[0-9]+");
+      if (!value) {
+        return "Amount is required!";
+      }
+      if (!regex.test(value)) {
+        //return value
+        return "Only numbers are allowed, try again!";
+      }
+    },
+  })) as string;
+
+  const messageContinue = (() => {
+    if (side === "buy") {
+      return `Send a market Buy with ${amount} ${tokenToSend.symbol}`;
+    } else {
+      return `Send a market Sell with ${amount} ${tokenToSend.symbol}`;
+    }
+  })();
+  const shouldContinue = await p.confirm({
+    message: messageContinue,
+  });
+
+  // amount has to take decimals into account
+  if (shouldContinue) {
+    const amountIncludingDecimals = (
+      parseInt(amount) * Math.pow(10, tokenToSend.decimals)
+    ).toString();
+    return {
+      token: tokenToSend.address,
+      amount: amountIncludingDecimals,
+    };
+  } else {
+    return null;
+  }
+}

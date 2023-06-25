@@ -33,6 +33,8 @@ export interface CW20SendMessage {
 const ACTIONS = [
   "set-sell",
   "set-buy",
+  "market-sell",
+  "market-buy",
   "remove",
   "get-market",
   "get-bids",
