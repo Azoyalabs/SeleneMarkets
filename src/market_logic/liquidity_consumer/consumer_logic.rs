@@ -6,7 +6,7 @@ use crate::{
     market_logic::liquidity_provider,
     state::{LEVELS_DATA, LEVEL_ORDERS, MARKET_INFO, USER_ORDERS},
     state_utils,
-    structs::{LevelOrder, OrderSide},
+    structs::{CurrencyStatus, LevelOrder, MarketInfo, OrderSide, UserOrderRecord},
     utils::{create_funds_message, wrapped_comparison},
     ContractError,
 };
@@ -26,12 +26,13 @@ pub fn process_liquidity_taker(
     // we start by setting some comparators
     // this allows us to reuse code for bids and asks
     let (_closer_to_midprice_comparator, further_to_midprice_comparator) = match order_side {
-        OrderSide::Buy => (Ordering::Greater, Ordering::Less),
-        OrderSide::Sell => (Ordering::Less, Ordering::Greater),
+        OrderSide::Sell => (Ordering::Greater, Ordering::Less),
+        OrderSide::Buy => (Ordering::Less, Ordering::Greater),
     };
 
     // access market info
     let mut market_info = MARKET_INFO.load(deps.storage, market_id)?;
+    let currency_status = MarketInfo::get_currency_status_from_order_side(order_side.clone());
 
     //let mut id_prev_level: Option<u64> = None;
     let mut id_current_level = match order_side {
@@ -39,6 +40,7 @@ pub fn process_liquidity_taker(
         OrderSide::Sell => market_info.top_level_bid,
     };
 
+    let mut to_send_back = Uint128::zero();
     let mut consumed_orders: Vec<ConsumedOrdersLevel> = vec![];
     let mut remaining_quantity: Uint128 = order_quantity;
     loop {
@@ -66,11 +68,27 @@ pub fn process_liquidity_taker(
                         // now insert the new level
                         liquidity_provider::process_limit_maker(
                             deps.storage,
-                            sender,
+                            sender.clone(),
                             market_id,
                             val_order_price,
                             remaining_quantity,
                             order_side.clone(),
+                        )?;
+
+                        // need to add order for user
+                        USER_ORDERS.update(
+                            deps.storage,
+                            sender.clone(),
+                            |orders| -> Result<_, ContractError> {
+                                let mut orders = orders.unwrap_or_default();
+                                orders.push(UserOrderRecord {
+                                    market_id: market_id,
+                                    order_side: order_side.clone(),
+                                    price: opt_order_price.unwrap(),
+                                    quantity: remaining_quantity,
+                                });
+                                return Ok(orders);
+                            },
                         )?;
                         break;
                     }
@@ -95,6 +113,20 @@ pub fn process_liquidity_taker(
                     let mut level_orders = LEVEL_ORDERS.load(deps.storage, val_id_current_level)?;
                     let consumption_result =
                         level_orders.consume(curr_level_data.price, remaining_quantity);
+
+                    match currency_status {
+                        CurrencyStatus::QuoteCurrency => {
+                            // received base currency in input, so output is quote currency
+                            to_send_back += consumption_result.to_send_back;
+                        }
+                        CurrencyStatus::BaseCurrency => {
+                            // need to convert amount
+                            to_send_back += consumption_result
+                                .to_send_back
+                                .checked_mul_ceil(curr_level_data.price)
+                                .unwrap();
+                        }
+                    }
 
                     if consumption_result.remaining_to_consume.is_zero() {
                         // check if there are orders remaining in the current level to update market info
@@ -147,11 +179,27 @@ pub fn process_liquidity_taker(
                     // this means this is a limit taker, so need to add a level
                     liquidity_provider::process_limit_maker(
                         deps.storage,
-                        sender,
+                        sender.clone(),
                         market_id,
                         opt_order_price.unwrap(),
                         remaining_quantity,
                         order_side.clone(),
+                    )?;
+
+                    // need to add order for user
+                    USER_ORDERS.update(
+                        deps.storage,
+                        sender.clone(),
+                        |orders| -> Result<_, ContractError> {
+                            let mut orders = orders.unwrap_or_default();
+                            orders.push(UserOrderRecord {
+                                market_id: market_id,
+                                order_side: order_side.clone(),
+                                price: opt_order_price.unwrap(),
+                                quantity: remaining_quantity,
+                            });
+                            return Ok(orders);
+                        },
                     )?;
                     break;
                 }
@@ -160,7 +208,7 @@ pub fn process_liquidity_taker(
     }
 
     // process consumed orders in state of user orders
-    let currency_info = market_info.get_currency_info_from_side(order_side);
+    let currency_info = market_info.get_currency_info_from_side(order_side.clone());
 
     let mut messages: Vec<CosmosMsg> = vec![];
     for cons in &consumed_orders {
@@ -192,13 +240,35 @@ pub fn process_liquidity_taker(
                 },
             )?;
 
+            let return_amount = match currency_status {
+                CurrencyStatus::BaseCurrency => {
+                    // received base currency in input, so output is quote currency
+                    order.amount.checked_mul_ceil(cons.price).unwrap()
+                }
+                CurrencyStatus::QuoteCurrency => {
+                    // need to convert amount
+                    order.amount
+                }
+            };
+
             messages.push(create_funds_message(
-                order.amount,
+                return_amount,
                 currency_info.clone(),
                 order.user.clone(),
             ));
         }
     }
+
+    // add funds to send back to trader
+    let trader_currency_info = market_info.get_currency_info_from_side(match order_side {
+        OrderSide::Buy => OrderSide::Sell,
+        OrderSide::Sell => OrderSide::Buy,
+    });
+    messages.push(create_funds_message(
+        to_send_back,
+        trader_currency_info,
+        sender,
+    ));
 
     return Ok(messages);
 }

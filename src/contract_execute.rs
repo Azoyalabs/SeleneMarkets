@@ -90,7 +90,18 @@ fn execute_remove_limit_order(
                 order_data.order_side.to_owned(),
             )?;
 
-            create_funds_message(order_data.quantity, currency_info, info.sender)
+            // determine whether this is a base currency or a quote currency
+            let currency_status = market_info
+                .get_currency_status(&currency_info.get_denom())
+                .unwrap();
+
+            let order_quantity = match currency_status {
+                CurrencyStatus::BaseCurrency => order_data.quantity,
+                CurrencyStatus::QuoteCurrency => {
+                    order_data.quantity.checked_mul_floor(order_price).unwrap()
+                }
+            };
+            create_funds_message(order_quantity, currency_info, info.sender)
         }
     };
 
@@ -113,6 +124,11 @@ fn execute_limit_order_cw20(
 
     // determine whether this is a base currency or a quote currency
     let currency_status = market_info.get_currency_status(&currency)?;
+
+    let order_quantity = match currency_status {
+        CurrencyStatus::BaseCurrency => order_quantity,
+        CurrencyStatus::QuoteCurrency => order_quantity.checked_div_floor(order_price).unwrap(),
+    };
 
     let order_side = MarketInfo::get_order_side_from_currency_status(currency_status.clone());
 
@@ -241,7 +257,7 @@ fn execute_limit_order_cw20(
                             OrderSide::Sell,
                         )?;
                     } else {
-                        return Err(ContractError::Unimplemented {});
+                        //return Err(ContractError::Unimplemented {});
 
                         // limit taker
                         out_msgs = liquidity_consumer::process_liquidity_taker(
@@ -256,12 +272,12 @@ fn execute_limit_order_cw20(
                 }
             }
         }
-        // if we receive BaseCurrency, then it's a sell order
+        // if we receive QuoteCurrency, then it's a buy order
         // so check if it's taker or maker
         CurrencyStatus::QuoteCurrency => {
             match market_info.top_level_ask {
                 None => {
-                    // no bids registered, so it's a limit maker order
+                    // no asks registered, so it's a limit maker order
                     USER_ORDERS.update(
                         deps.storage,
                         sender.clone(),
@@ -287,7 +303,7 @@ fn execute_limit_order_cw20(
                         OrderSide::Buy,
                     )?;
                 }
-                // bids registered, compare to price
+                // asks registered, compare to price
                 Some(val_id_top_level_ask) => {
                     let top_ask_level_data =
                         LEVELS_DATA.load(deps.storage, val_id_top_level_ask)?;
@@ -318,7 +334,7 @@ fn execute_limit_order_cw20(
                             OrderSide::Buy,
                         )?;
                     } else {
-                        return Err(ContractError::Unimplemented {});
+                        //return Err(ContractError::Unimplemented {});
 
                         // limit taker
                         out_msgs = liquidity_consumer::process_liquidity_taker(
@@ -356,6 +372,11 @@ fn execute_limit_order(
 
     // determine whether this is a base currency or a quote currency
     let currency_status = market_info.get_currency_status(&order_value.denom)?;
+
+    let order_quantity = match currency_status {
+        CurrencyStatus::BaseCurrency => order_quantity,
+        CurrencyStatus::QuoteCurrency => order_quantity.checked_div_floor(order_price).unwrap(),
+    };
 
     let order_side = MarketInfo::get_order_side_from_currency_status(currency_status.clone());
 
@@ -498,7 +519,7 @@ fn execute_limit_order(
                             OrderSide::Sell,
                         )?;
                     } else {
-                        return Err(ContractError::Unimplemented {});
+                        //return Err(ContractError::Unimplemented {});
 
                         // limit taker
                         out_msgs = liquidity_consumer::process_liquidity_taker(
@@ -513,7 +534,7 @@ fn execute_limit_order(
                 }
             }
         }
-        // if we receive BaseCurrency, then it's a sell order
+        // if we receive QuoteCurrency, then it's a buy order
         // so check if it's taker or maker
         CurrencyStatus::QuoteCurrency => {
             match market_info.top_level_ask {
@@ -575,7 +596,7 @@ fn execute_limit_order(
                             OrderSide::Buy,
                         )?;
                     } else {
-                        return Err(ContractError::Unimplemented {});
+                        //return Err(ContractError::Unimplemented {});
 
                         // limit taker
                         out_msgs = liquidity_consumer::process_liquidity_taker(
@@ -632,6 +653,15 @@ fn execute_market_order_cw20(
     let order_side = market_info.get_order_side_from_currency(&currency)?;
 
     return Err(ContractError::Unimplemented {});
+    // determine whether this is a base currency or a quote currency
+    let currency_status = market_info.get_currency_status(&currency)?;
+
+    /*
+    let order_quantity = match currency_status {
+        CurrencyStatus::BaseCurrency => order_quantity,
+        CurrencyStatus::QuoteCurrency => order_quantity.checked_div_floor(order_price).unwrap()
+    };
+    */
 
     let msgs = liquidity_consumer::process_liquidity_taker(
         deps,

@@ -24,6 +24,13 @@ pub enum CurrencyInfo {
 }
 
 impl CurrencyInfo {
+    pub fn get_denom(&self) -> String {
+        return match self {
+            CurrencyInfo::Cw20 { address } => address.to_owned(),
+            CurrencyInfo::Native { denom } => denom.to_owned(),
+        };
+    }
+
     pub fn is_match(&self, target: &str) -> bool {
         return match self {
             CurrencyInfo::Cw20 { address } => address.eq(target),
@@ -40,6 +47,15 @@ impl CurrencyInfo {
 pub enum CurrencyStatus {
     BaseCurrency,
     QuoteCurrency,
+}
+
+impl CurrencyStatus {
+    pub fn other(&self) -> Self {
+        match self {
+            CurrencyStatus::BaseCurrency => CurrencyStatus::QuoteCurrency,
+            CurrencyStatus::QuoteCurrency => CurrencyStatus::BaseCurrency,
+        }
+    }
 }
 
 #[cw_serde]
@@ -85,6 +101,13 @@ impl MarketInfo {
         return match currency_status {
             CurrencyStatus::QuoteCurrency => OrderSide::Buy,
             CurrencyStatus::BaseCurrency => OrderSide::Sell,
+        };
+    }
+
+    pub fn get_currency_status_from_order_side(order_side: OrderSide) -> CurrencyStatus {
+        return match order_side {
+            OrderSide::Buy => CurrencyStatus::QuoteCurrency,
+            OrderSide::Sell => CurrencyStatus::BaseCurrency,
         };
     }
 
@@ -199,13 +222,6 @@ pub struct UserOrderRecord {
     pub quantity: Uint128,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct TempOrderRep {
-    pub order_side: OrderSide,
-    pub price: Decimal,
-    pub quantity: Uint128,
-}
-
 #[cw_serde]
 pub struct UserOrder {
     pub market_id: u64,
@@ -217,6 +233,32 @@ pub struct UserOrder {
 pub struct LevelOrder {
     pub user: Addr,
     pub amount: Uint128,
+}
+
+impl LevelOrder {
+    pub fn to_quote_currency_level_order(
+        &self,
+        price: Decimal,
+        order_side: OrderSide,
+    ) -> QuoteCurrencyLevelOrder {
+        return QuoteCurrencyLevelOrder {
+            user: self.user.clone(),
+            amount: self.amount,
+        };
+    }
+}
+
+#[cw_serde]
+pub struct QuoteCurrencyLevelOrder {
+    pub user: Addr,
+    pub amount: Uint128,
+}
+
+#[cw_serde]
+pub struct LevelOrder2 {
+    pub user: Addr,
+    pub amount: Uint128,
+    pub amount_in_quote_currency: Uint128,
 }
 
 pub type LevelOrders = Vec<LevelOrder>;

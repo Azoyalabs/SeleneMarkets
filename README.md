@@ -7,14 +7,11 @@ This is a submission for a hackaton and should not be considered production-read
 
 A CLI is available for ease of interaction, see the "Using the CLI" section.  
 
-### IMPORTANT: Due to logic issues, taker orders are not available (market orders, and limit that would match an available order)  
-
-
 
 ## Testnet Setup 
 The deployed smart contract can be found at the following address on the Archways testnet (constantine-3):
 ```
-archway19z2f7du39v9q5m427s0fu5344u3qwyyxeqaknhhu0ntwankqz8gqapezf0
+archway1nmrd3j5lxzs08s6dpgyty7a3k276gcnk3nqq27dl0sr09zgtfpks2xqwmp
 ```  
 
 It has been preset with a market for trading with 2 CW20 tokens.  

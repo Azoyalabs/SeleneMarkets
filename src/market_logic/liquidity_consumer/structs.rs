@@ -12,6 +12,7 @@ pub struct ConsumptionResult {
     pub remaining_to_consume: Uint128, //Decimal,
     /// records that have been consumed, partially or fully
     pub bin_records_consumed: Vec<LevelOrder>,
+    pub to_send_back: Uint128,
 }
 
 impl ConsumptionResult {
@@ -20,6 +21,7 @@ impl ConsumptionResult {
             bin_records_consumed: vec![],
             is_fully_consumed: false,
             remaining_to_consume: to_consume, //Decimal::new(to_consume),
+            to_send_back: Uint128::zero(),
         };
     }
 }
@@ -54,11 +56,12 @@ impl LiquidityConsumer for LevelOrders {
         quantity: Uint128,
         //order_side: OrderSide,
     ) -> ConsumptionResult {
-        let mut rslt = ConsumptionResult::new(quantity.checked_div_floor(price).unwrap());
+        let mut rslt = ConsumptionResult::new(quantity); //.checked_div_floor(price).unwrap());
         loop {
             if let Some(mut curr) = self.pop() {
                 if rslt.remaining_to_consume > curr.amount {
                     rslt.remaining_to_consume -= curr.amount;
+                    rslt.to_send_back += curr.amount; //.checked_div_floor(price).unwrap();
                     rslt.bin_records_consumed.push(curr);
                 } else {
                     rslt.bin_records_consumed.push(LevelOrder {
@@ -66,6 +69,7 @@ impl LiquidityConsumer for LevelOrders {
                         amount: rslt.remaining_to_consume,
                     });
                     curr.amount -= curr.amount;
+                    rslt.to_send_back += rslt.remaining_to_consume; //.checked_div_floor(price).unwrap();
                     rslt.remaining_to_consume = Uint128::zero();
 
                     if !curr.amount.is_zero() {
@@ -97,7 +101,7 @@ impl LiquidityConsumer for LevelOrders {
         }
         */
 
-        rslt.remaining_to_consume = rslt.remaining_to_consume.checked_mul_floor(price).unwrap();
+        //rslt.remaining_to_consume = rslt.remaining_to_consume.checked_mul_floor(price).unwrap();
 
         return rslt;
     }
@@ -140,7 +144,7 @@ mod tests {
             // so to clear it all, need to sell 1
             // would get 2 in return?
 
-            let rslt = level_orders.consume(price, Uint128::one()); //, order_side);
+            let rslt = level_orders.consume(price, Uint128::new(2)); //, order_side);
             println!("rslt consume: {:?}", rslt);
 
             assert!(rslt.is_fully_consumed);
@@ -172,7 +176,7 @@ mod tests {
             // so to clear it all, need to sell 1
             // would get 2 in return?
             // with input quantity of 2, means remained should be 1
-            let rslt = level_orders.consume(price, Uint128::new(2)); //, order_side);
+            let rslt = level_orders.consume(price, Uint128::new(3)); //, order_side);
             println!("rslt consume: {:?}", rslt);
 
             assert!(rslt.is_fully_consumed);
@@ -239,7 +243,7 @@ mod tests {
             // so to clear it all, need to sell 1
             // would get 2 in return?
 
-            let rslt = level_orders.consume(price, Uint128::one()); //, order_side);
+            let rslt = level_orders.consume(price, Uint128::new(2)); //, order_side);
             println!("rslt consume: {:?}", rslt);
 
             assert!(rslt.is_fully_consumed);
@@ -271,7 +275,7 @@ mod tests {
             // so to clear it all, need to sell 1
             // would get 2 in return?
             // with input quantity of 2, means remained should be 1
-            let rslt = level_orders.consume(price, Uint128::new(2)); //, order_side);
+            let rslt = level_orders.consume(price, Uint128::new(3)); //, order_side);
             println!("rslt consume: {:?}", rslt);
 
             assert!(rslt.is_fully_consumed);
