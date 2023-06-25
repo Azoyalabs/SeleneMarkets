@@ -17,6 +17,8 @@ export async function makeWallet(mnemonic: string) {
     }
   );
 
+  const balance = await cosmwasmSigner.getBalance(address, "aconst")
+
   const seleneClient = new SeleneClient(
     cosmwasmSigner,
     address,
@@ -28,5 +30,6 @@ export async function makeWallet(mnemonic: string) {
     address,
     cosmwasmSigner,
     seleneClient,
+    balance
   };
 }

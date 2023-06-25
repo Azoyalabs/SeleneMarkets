@@ -31,7 +31,7 @@ async function main() {
     ],
   })) as string;
   const wallet = await makeWallet(mnemonic);
-  console.log(`${cyan(`Connected as ${wallet.address}`)}`);
+  console.log(`${cyan(`Connected as ${wallet.address} with ${(parseInt(wallet.balance.amount) * Math.pow(10,-18)).toFixed(2)} CONST`)}`);
 
   const balances = await queryTokenBalances(
     wallet.address,
@@ -51,6 +51,7 @@ async function main() {
         label: "Place a buy order (Buy HEUR with HUSD)",
         value: "set-buy",
       },
+      /*
       {
         label: "Send a market sell order (Sell HEUR for HUSD)",
         value: "market-sell",
@@ -58,7 +59,7 @@ async function main() {
       {
         label: "Send a market buy order (Buy HEUR with HUSD)",
         value: "market-buy",
-      },
+      },*/
       {
         label: "Remove an order",
         value: "remove",
