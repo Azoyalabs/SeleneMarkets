@@ -241,6 +241,8 @@ fn execute_limit_order_cw20(
                             OrderSide::Sell,
                         )?;
                     } else {
+                        return Err(ContractError::Unimplemented {});
+
                         // limit taker
                         out_msgs = liquidity_consumer::process_liquidity_taker(
                             deps,
@@ -316,6 +318,8 @@ fn execute_limit_order_cw20(
                             OrderSide::Buy,
                         )?;
                     } else {
+                        return Err(ContractError::Unimplemented {});
+
                         // limit taker
                         out_msgs = liquidity_consumer::process_liquidity_taker(
                             deps,
@@ -494,6 +498,8 @@ fn execute_limit_order(
                             OrderSide::Sell,
                         )?;
                     } else {
+                        return Err(ContractError::Unimplemented {});
+
                         // limit taker
                         out_msgs = liquidity_consumer::process_liquidity_taker(
                             deps,
@@ -569,6 +575,8 @@ fn execute_limit_order(
                             OrderSide::Buy,
                         )?;
                     } else {
+                        return Err(ContractError::Unimplemented {});
+
                         // limit taker
                         out_msgs = liquidity_consumer::process_liquidity_taker(
                             deps,
@@ -599,6 +607,8 @@ fn execute_market_order(
     let market_info = MARKET_INFO.load(deps.storage, market_id)?;
     let order_side = market_info.get_order_side_from_currency(&order_value.denom)?;
 
+    return Err(ContractError::Unimplemented {});
+
     let msgs = liquidity_consumer::process_liquidity_taker(
         deps,
         info.sender,
@@ -620,6 +630,8 @@ fn execute_market_order_cw20(
 ) -> Result<Response, ContractError> {
     let market_info = MARKET_INFO.load(deps.storage, market_id)?;
     let order_side = market_info.get_order_side_from_currency(&currency)?;
+
+    return Err(ContractError::Unimplemented {});
 
     let msgs = liquidity_consumer::process_liquidity_taker(
         deps,

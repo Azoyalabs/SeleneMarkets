@@ -12,6 +12,9 @@ pub enum ContractError {
     #[error("Unauthorized")]
     Unauthorized {},
 
+    #[error("Unimplemented")]
+    Unimplemented {},
+
     #[error("Only one fund allowed in native market messages")]
     InvalidNumberOfFunds {},
 
