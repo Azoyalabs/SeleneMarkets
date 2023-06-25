@@ -136,7 +136,7 @@ mod tests {
             )
             .unwrap();
 
-        // query orders again 
+        // query orders again
         let msg = QueryMsg::GetUserBids {
             user_address: user_1.clone(),
             target_market: Some(0),

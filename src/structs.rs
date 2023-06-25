@@ -81,6 +81,13 @@ impl MarketInfo {
         }
     }
 
+    pub fn get_order_side_from_currency_status(currency_status: CurrencyStatus) -> OrderSide {
+        return match currency_status {
+            CurrencyStatus::QuoteCurrency => OrderSide::Buy,
+            CurrencyStatus::BaseCurrency => OrderSide::Sell,
+        };
+    }
+
     pub fn get_currency_info_from_side(&self, order_side: OrderSide) -> CurrencyInfo {
         return match order_side {
             OrderSide::Buy => self.quote_currency.to_owned(),

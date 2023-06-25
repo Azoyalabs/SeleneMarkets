@@ -87,7 +87,10 @@ mod tests {
             user_address: user_1,
             target_market: Some(0),
         };
-        let res: GetUserAsksResponse = router.wrap().query_wasm_smart(market_addr.clone(), &msg).unwrap();
+        let res: GetUserAsksResponse = router
+            .wrap()
+            .query_wasm_smart(market_addr.clone(), &msg)
+            .unwrap();
         assert_eq!(res.orders.len(), 1);
 
         // query book
