@@ -11,7 +11,7 @@ A CLI is available for ease of interaction, see the "Using the CLI" section.
 ## Testnet Setup 
 The deployed smart contract can be found at the following address on the Archways testnet (constantine-3):
 ```
-archway1nmrd3j5lxzs08s6dpgyty7a3k276gcnk3nqq27dl0sr09zgtfpks2xqwmp
+archway1vp800tcrdf8s9skx0f5k64dmsmkp2ls4hngcfjk4nle5wvg6vl5q8g3raf
 ```  
 
 It has been preset with a market for trading with 2 CW20 tokens.  
@@ -26,7 +26,7 @@ The CLI contains a faucet for these 2 markets.
 3- Build (npm run build)  
 4- Launch the CLI (npm run start)   
 
-When running the CLI you will be asked to choose a user.  
+When running the CLI you will be asked to choose a user we've prepared with the HUSD and HEUR required to interact with the dex. Make sure they own enough CONST to run transactions!
 
 ![Choose User on start](media/cli_choose_user.PNG)
 

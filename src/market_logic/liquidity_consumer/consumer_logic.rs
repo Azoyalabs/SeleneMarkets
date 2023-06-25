@@ -132,6 +132,16 @@ pub fn process_liquidity_taker(
                         // check if there are orders remaining in the current level to update market info
                         if level_orders.len() == 0 {
                             // if there are none, remove this level
+                            match order_side {
+                                OrderSide::Buy => {
+                                    market_info.top_level_ask = curr_level_data.id_next;
+                                }
+                                OrderSide::Sell => {
+                                    market_info.top_level_bid = curr_level_data.id_next;
+                                }
+                            }
+                            MARKET_INFO.save(deps.storage, market_id, &market_info)?;
+                            
                             state_utils::remove_level(
                                 deps.storage,
                                 market_id,
@@ -241,11 +251,11 @@ pub fn process_liquidity_taker(
             )?;
 
             let return_amount = match currency_status {
-                CurrencyStatus::BaseCurrency => {
+                CurrencyStatus::QuoteCurrency => {
                     // received base currency in input, so output is quote currency
                     order.amount.checked_mul_ceil(cons.price).unwrap()
                 }
-                CurrencyStatus::QuoteCurrency => {
+                CurrencyStatus::BaseCurrency => {
                     // need to convert amount
                     order.amount
                 }
@@ -264,6 +274,7 @@ pub fn process_liquidity_taker(
         OrderSide::Buy => OrderSide::Sell,
         OrderSide::Sell => OrderSide::Buy,
     });
+
     messages.push(create_funds_message(
         to_send_back,
         trader_currency_info,

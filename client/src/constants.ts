@@ -4,7 +4,7 @@ export const FAUCET_MNEMONIC =
   "notice oak worry limit wrap speak medal online prefer cluster roof addict wrist behave treat actual wasp year salad speed social layer crew genius";
 
 export const MARKETPLACE_ADDRESS =
-  "archway1nmrd3j5lxzs08s6dpgyty7a3k276gcnk3nqq27dl0sr09zgtfpks2xqwmp";
+  "archway1vp800tcrdf8s9skx0f5k64dmsmkp2ls4hngcfjk4nle5wvg6vl5q8g3raf";
 
 export const HEUR_ADDRESS =
   "archway1wn65e09977sznhadc809n3t7qdzvz8qlp86ldmgmtg0j7v0778psxffrfs";

@@ -468,7 +468,6 @@ mod tests {
 
     #[test]
     fn native_market() {
-        return;
         let (mut router, market_addr) = instantiate_selene();
         create_market_native_only_pair(&mut router, market_addr.clone());
 
@@ -529,10 +528,13 @@ mod tests {
             )
             .unwrap();
 
+        let msg = QueryMsg::GetMarketBook { market_id: 0, nb_levels: 10 };
         let res: GetMarketBookResponse = router
             .wrap()
             .query_wasm_smart(market_addr.clone(), &msg)
             .unwrap();
         println!("book: {:?}", res);
     }
+
+
 }

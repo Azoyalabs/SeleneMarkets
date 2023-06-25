@@ -628,7 +628,7 @@ fn execute_market_order(
     let market_info = MARKET_INFO.load(deps.storage, market_id)?;
     let order_side = market_info.get_order_side_from_currency(&order_value.denom)?;
 
-    return Err(ContractError::Unimplemented {});
+    //return Err(ContractError::Unimplemented {});
 
     let msgs = liquidity_consumer::process_liquidity_taker(
         deps,
@@ -652,7 +652,7 @@ fn execute_market_order_cw20(
     let market_info = MARKET_INFO.load(deps.storage, market_id)?;
     let order_side = market_info.get_order_side_from_currency(&currency)?;
 
-    return Err(ContractError::Unimplemented {});
+    //return Err(ContractError::Unimplemented {});
     // determine whether this is a base currency or a quote currency
     let currency_status = market_info.get_currency_status(&currency)?;
 
