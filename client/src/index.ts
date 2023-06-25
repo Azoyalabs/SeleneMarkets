@@ -7,6 +7,8 @@ import { queryTokenBalances } from "./actions/balance.js";
 import { OrderCreationPrompt } from "./utils/promptOrder.js";
 import { ACTION, SeleneCw20Msg } from "./types.js";
 import { transferCW20WithMessage } from "./utils/transferCW20.js";
+import { stringify } from "querystring";
+import { UserOrderRecord } from "./contract/Selene.types.js";
 
 p.intro(inverse(cyan("Selene Markets - Archway Hackathon edition")));
 
@@ -165,10 +167,55 @@ async function main() {
       break;
 
     case "get-market":
-      console.log(red("remove is not implemented yet"));
+      try {
+        const { bids: bidOrders, asks: askOrders } = await wallet.seleneClient.getMarketBook({
+          marketId: MARKET_ID,
+          nbLevels: 10
+        });
+        console.log(gray(`Current open buy orders`));
+        console.table(
+          bidOrders.map((o) => ({ price: o.price, quantity: o.quantity }))
+        );
+        console.log(gray(`Current open sell orders`));
+        console.table(
+          askOrders.map((o) => ({ price: o.price, quantity: o.quantity }))
+        );
+      } catch (error) {
+        console.log(yellow(`No orders on this market`));
+      }
       break;
 
     case "remove":
+      try {
+        const res = await wallet.seleneClient.getUserOrders({
+          targetMarket: 0,
+          userAddress: wallet.address
+        });
+
+        // orders to options
+        const order_opts = res.orders.map((o) => ({
+          label: JSON.stringify(o),
+          value: o
+        }));
+        
+        // res.orders
+        const chosen_order = (await p.select({
+          message: "Which order do you want to cancel",
+          options: order_opts,
+        })) as UserOrderRecord;
+
+        
+        const s = p.spinner();
+        s.start(
+          `Cancelling order`
+        );
+        const removeTx = await wallet.seleneClient.removeLimitOrder({marketId: chosen_order.market_id, price: chosen_order.price});
+        s.stop(`transaction successful: ${EXPLORER_TX_LINK(removeTx.transactionHash)}`);
+
+      } catch (error) {
+        console.log(yellow(`No orders on this market`));
+      }
+      break;
       //wallet.seleneClient.
       return
       // TODO: need to get current orders to prompt which one to remove
@@ -176,8 +223,8 @@ async function main() {
         marketId: MARKET_ID,
         price: "1.1"
       })
-      
-    break;
+
+      break;
     default:
       break;
   }
