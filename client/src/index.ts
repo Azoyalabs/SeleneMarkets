@@ -1,14 +1,18 @@
-import { sendMeTokens } from "./queryTokens.js";
 import * as p from "@clack/prompts";
 import { bold, cyan, gray, grey, inverse, red, yellow } from "kleur/colors";
-import { ALICE_MNEMONIC, BOB_MNEMONIC, EXPLORER_TX_LINK, MARKET_ID } from "./constants.js";
+import {
+  ALICE_MNEMONIC,
+  BOB_MNEMONIC,
+  EXPLORER_TX_LINK,
+  MARKET_ID,
+} from "./constants.js";
 import { makeWallet } from "./utils/makeWallet.js";
 import { queryTokenBalances } from "./actions/balance.js";
-import { OrderCreationPrompt } from "./utils/promptOrder.js";
+import { NewOrderCreationPrompt, OrderCreationPrompt } from "./utils/promptOrder.js";
 import { ACTION, SeleneCw20Msg } from "./types.js";
 import { transferCW20WithMessage } from "./utils/transferCW20.js";
-import { stringify } from "querystring";
 import { UserOrderRecord } from "./contract/Selene.types.js";
+import { sendMeTokens } from "./actions/queryTokens.js";
 
 p.intro(inverse(cyan("Selene Markets - Archway Hackathon edition")));
 
@@ -40,11 +44,11 @@ async function main() {
     message: "What do you want to do?",
     options: [
       {
-        label: "Place a sell order",
+        label: "Place a sell order (Sell HEUR for HUSD)",
         value: "set-sell",
       },
       {
-        label: "Place a buy order",
+        label: "Place a buy order (Buy HEUR with HUSD)",
         value: "set-buy",
       },
       {
@@ -63,12 +67,16 @@ async function main() {
         label: "Get my currently placed ask orders",
         value: "get-asks",
       },
+      {
+        label: "Ask faucet for HUSD & HEUR tokens",
+        value: "faucet-tokens",
+      },
     ],
   })) as ACTION;
 
   switch (action) {
     case "set-sell":
-      const sellPrompt = await OrderCreationPrompt(balances, "sell");
+      const sellPrompt = await NewOrderCreationPrompt(balances, "sell");
       if (sellPrompt) {
         const limitSellMsg: SeleneCw20Msg = {
           limit_order: {
@@ -91,7 +99,11 @@ async function main() {
             limitSellMsg,
             wallet.cosmwasmSigner
           );
-          s.stop(`transaction successful: ${EXPLORER_TX_LINK(putSellOrder.transactionHash)}`);
+          s.stop(
+            `transaction successful: ${EXPLORER_TX_LINK(
+              putSellOrder.transactionHash
+            )}`
+          );
         } catch (error) {
           console.error(error);
         }
@@ -101,7 +113,7 @@ async function main() {
       break;
 
     case "set-buy":
-      const buyPrompt = await OrderCreationPrompt(balances, "buy");
+      const buyPrompt = await NewOrderCreationPrompt(balances, "buy");
       if (buyPrompt) {
         const limitSellMsg: SeleneCw20Msg = {
           limit_order: {
@@ -124,7 +136,11 @@ async function main() {
             limitSellMsg,
             wallet.cosmwasmSigner
           );
-          s.stop(`transaction successful: ${EXPLORER_TX_LINK(buyOrderTx.transactionHash)}`);
+          s.stop(
+            `transaction successful: ${EXPLORER_TX_LINK(
+              buyOrderTx.transactionHash
+            )}`
+          );
         } catch (error) {
           console.error(error);
         }
@@ -132,7 +148,6 @@ async function main() {
         p.outro("Order cancelled");
       }
       break;
-
 
     case "get-bids":
       try {
@@ -168,10 +183,11 @@ async function main() {
 
     case "get-market":
       try {
-        const { bids: bidOrders, asks: askOrders } = await wallet.seleneClient.getMarketBook({
-          marketId: MARKET_ID,
-          nbLevels: 10
-        });
+        const { bids: bidOrders, asks: askOrders } =
+          await wallet.seleneClient.getMarketBook({
+            marketId: MARKET_ID,
+            nbLevels: 10,
+          });
         console.log(gray(`Current open buy orders`));
         console.table(
           bidOrders.map((o) => ({ price: o.price, quantity: o.quantity }))
@@ -189,42 +205,51 @@ async function main() {
       try {
         const res = await wallet.seleneClient.getUserOrders({
           targetMarket: 0,
-          userAddress: wallet.address
+          userAddress: wallet.address,
         });
 
         // orders to options
         const order_opts = res.orders.map((o) => ({
           label: JSON.stringify(o),
-          value: o
+          value: o,
         }));
-        
+
         // res.orders
         const chosen_order = (await p.select({
           message: "Which order do you want to cancel",
           options: order_opts,
         })) as UserOrderRecord;
 
-        
         const s = p.spinner();
-        s.start(
-          `Cancelling order`
+        s.start(`Cancelling order`);
+        const removeTx = await wallet.seleneClient.removeLimitOrder({
+          marketId: chosen_order.market_id,
+          price: chosen_order.price,
+        });
+        s.stop(
+          `transaction successful: ${EXPLORER_TX_LINK(
+            removeTx.transactionHash
+          )}`
         );
-        const removeTx = await wallet.seleneClient.removeLimitOrder({marketId: chosen_order.market_id, price: chosen_order.price});
-        s.stop(`transaction successful: ${EXPLORER_TX_LINK(removeTx.transactionHash)}`);
-
       } catch (error) {
         console.log(yellow(`No orders on this market`));
       }
       break;
-      //wallet.seleneClient.
-      return
-      // TODO: need to get current orders to prompt which one to remove
-      wallet.seleneClient.removeLimitOrder({
-        marketId: MARKET_ID,
-        price: "1.1"
-      })
+
+    case "faucet-tokens":
+      try {
+        const s = p.spinner();
+        s.start("Querying HUSD & HUSD tokens");
+        const tx = await sendMeTokens(wallet.address);
+        s.stop(
+          `transaction successful: ${EXPLORER_TX_LINK(tx.transactionHash)}`
+        );
+      } catch (error) {
+        console.error(error);
+      }
 
       break;
+
     default:
       break;
   }
