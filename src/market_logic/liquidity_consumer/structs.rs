@@ -1,8 +1,6 @@
-use std::ops::Mul;
-
 use cosmwasm_std::{Decimal, Uint128};
 
-use crate::structs::{LevelOrder, OrderSide};
+use crate::structs::LevelOrder;
 
 use crate::structs::LevelOrders;
 
@@ -56,17 +54,7 @@ impl LiquidityConsumer for LevelOrders {
         quantity: Uint128,
         //order_side: OrderSide,
     ) -> ConsumptionResult {
-        /*
-        let qtt_needed = match order_side {
-            OrderSide::Buy => quantity.checked_div_floor(price).unwrap(),
-            OrderSide::Sell => quantity.checked_div_floor(price).unwrap(),
-        };
-        */
-
         let mut rslt = ConsumptionResult::new(quantity.checked_div_floor(price).unwrap());
-        println!("initial rslt: {:?}", rslt);
-        println!("initial qtt: {:?}", quantity);
-        println!("price: {}", price);
         loop {
             if let Some(mut curr) = self.pop() {
                 if rslt.remaining_to_consume > curr.amount {

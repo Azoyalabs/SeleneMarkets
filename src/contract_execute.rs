@@ -5,9 +5,9 @@ use cosmwasm_std::{
 use crate::{
     market_logic::{liquidity_consumer, liquidity_provider, liquidity_remover},
     msg::{ExecuteMsg, SeleneCw20Msg},
-    state::{LEVELS_DATA, MARKET_INFO, USER_ORDERS},
+    state::{LEVELS_DATA, MARKET_INFO, USER_ORDERS, LEVEL_ORDERS},
     structs::{CurrencyStatus, OrderSide, UserOrderRecord},
-    utils::{check_only_one_fund, create_funds_message},
+    utils::{check_only_one_fund, create_funds_message, create_id_level_no_status},
     ContractError,
 };
 
@@ -110,6 +110,47 @@ fn execute_limit_order_cw20(
         Err(_) => return Err(ContractError::UnknownMarketId { id: market_id }),
         Ok(market_info) => market_info,
     };
+
+    // check if the user already has an order at this price
+    if let Ok(user_orders) = USER_ORDERS.load(deps.storage, sender.clone()) {
+        match user_orders.into_iter().find(|order| order.market_id == market_id && order.price == order_price) {
+            None => (),
+            Some(_) => {
+
+
+                // update user orders 
+                USER_ORDERS.update(deps.storage, sender.clone(), |orders| -> Result<_, ContractError> {
+                    let orders = orders.unwrap().into_iter().map(|mut order| {
+                        if order.market_id == market_id && order.price == order_price {
+                            order.quantity += order_quantity;
+                        }
+
+                        order
+                    }).collect();
+
+                    return Ok(orders);
+                })?;
+
+                // update level orders 
+                let level_id = create_id_level_no_status(&market_info, order_price);
+                LEVEL_ORDERS.update(deps.storage, level_id, |level_orders| -> Result<_, ContractError> {
+                    let level_orders = level_orders.unwrap().into_iter().map(|mut order| {
+                        if order.user == sender {
+                            order.amount += order_quantity;
+                        }
+
+                        order
+                    }).collect();
+
+                    return Ok(level_orders);
+                })?;
+
+                return Ok(Response::new());
+            }
+        }
+    }
+
+
 
     // determine whether this is a base currency or a quote currency
     let currency_status = market_info.get_currency_status(&currency)?;
@@ -290,6 +331,45 @@ fn execute_limit_order(
         Err(_) => return Err(ContractError::UnknownMarketId { id: market_id }),
         Ok(market_info) => market_info,
     };
+
+        // check if the user already has an order at this price
+        if let Ok(user_orders) = USER_ORDERS.load(deps.storage, info.sender.clone()) {
+            match user_orders.into_iter().find(|order| order.market_id == market_id && order.price == order_price) {
+                None => (),
+                Some(_) => {
+                    
+    
+                    // update user orders 
+                    USER_ORDERS.update(deps.storage, info.sender.clone(), |orders| -> Result<_, ContractError> {
+                        let orders = orders.unwrap().into_iter().map(|mut order| {
+                            if order.market_id == market_id && order.price == order_price {
+                                order.quantity += order_quantity;
+                            }
+    
+                            order
+                        }).collect();
+    
+                        return Ok(orders);
+                    })?;
+    
+                    // update level orders 
+                    let level_id = create_id_level_no_status(&market_info, order_price);
+                    LEVEL_ORDERS.update(deps.storage, level_id, |level_orders| -> Result<_, ContractError> {
+                        let level_orders = level_orders.unwrap().into_iter().map(|mut order| {
+                            if order.user == info.sender {
+                                order.amount += order_quantity;
+                            }
+    
+                            order
+                        }).collect();
+    
+                        return Ok(level_orders);
+                    })?;
+    
+                    return Ok(Response::new());
+                }
+            }
+        }
 
     // determine whether this is a base currency or a quote currency
     let currency_status = market_info.get_currency_status(&order_value.denom)?;
