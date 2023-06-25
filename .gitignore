@@ -16,3 +16,7 @@
 .idea
 
 DEV_NOTES.md
+
+
+node_modules
+dist
